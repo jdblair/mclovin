@@ -1,4 +1,4 @@
-# michacking
+# McLovin
 
 Reverse engineering the Mictuning camper light controller Bluetooth protocol
 to build a custom controller.
@@ -22,6 +22,10 @@ app with our own controller.
 - `mictuning.apk` — original APK pulled from phone
 - `mictuning-src/` — decompiled Java source (via jadx)
 - `jadx/` — jadx decompiler tool
+
+## Hardware
+
+- **Controller ID**: N8H-1AF
 
 ## Key Source Files
 

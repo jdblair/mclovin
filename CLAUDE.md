@@ -1,6 +1,6 @@
 # For Claude Code / AI assistants:
 
-- **Project**: Reverse engineering Mictuning camper light Bluetooth protocol
+- **Project**: McLovin — reverse engineering Mictuning camper light Bluetooth protocol
 - **Goal**: Understand the SPP protocol and build a custom controller
 - **Status**: APK decompiled, protocol analysis in progress
 

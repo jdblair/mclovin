@@ -1,0 +1,12 @@
+* McLovin NOTES.org file
+
+This file is only written by John, never by Claude.
+
+* 2026-07-28
+
+** 09:27:41
+
+commands to snoop bluetooth:
+
+$ adb forward tcp:8872 tcp:8872
+$ nc localhost 8872 > "btsnoop/$(date | sed 's/ /_/g')_hci.log"

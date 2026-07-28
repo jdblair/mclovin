@@ -1,0 +1,41 @@
+--------- beginning of main
+07-28 08:51:35.515  4958  4958 E TAG     : onOffEventgetOnOff: false;onOff=0 name=N8H-1AF
+07-28 08:51:35.515  4958  4958 E TAG     : onOffEvent????setOnOff: 0 name=N8H-1AF
+07-28 08:51:35.517  4958  5160 E TAG     : registerGlobalReceiver:看看有没有被我覆盖！！ 
+07-28 08:51:35.530  4958  4958 E TAG     : connectControl: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+07-28 08:51:36.155  4958  4958 E TAG     : onOffEvent????setOnOff: 1 name=N8H-1AF
+07-28 08:51:36.160  4958  4958 E TAG     : onConnectState: true
+07-28 08:51:36.160  4958  4958 E TAG     : onConnectState: N8H-1AF
+07-28 08:51:36.160  4958  4958 E TAG     : onConnectState: 查询
+07-28 08:51:36.160  4958  4958 E TAG     : sendP2dFFFA_Cmd: F800
+07-28 08:51:36.160  4958  4958 E TAG     : sendP2dFFFA_Cmd: 普通
+07-28 08:51:36.170  4958  4958 E TAG     : onOffEvent????setOnOff: 1 name=N8H-1AF
+07-28 08:51:36.174  4958  4958 E TAG     : onOffEvent????setOnOff: 1 name=N8H-1AF
+07-28 08:51:36.178  4958  4958 E TAG     : onOffEventgetOnOff: true;onOff=1 name=N8H-1AF
+07-28 08:51:36.375  4958  4958 E TAG     : sendP2dFFFA_Cmd: F100
+07-28 08:51:36.376  4958  4958 E TAG     : sendP2dFFFA_Cmd: 普通
+07-28 08:51:50.074  4958  4958 E TAG     : onOffEventgetOnOff: true;onOff=1 name=N8H-1AF
+07-28 08:51:50.074  4958  4958 E TAG     : onOffEventgetOnOff: true;onOff=1 name=N8H-1AF
+07-28 08:51:50.076  4958  4958 E TAG     : sendFFF1Spp: 普通:AE00AE
+07-28 08:51:50.077  4958  4958 E TAG     : onOffEvent????setOnOff: 1 name=N8H-1AF
+07-28 08:51:50.077  4958  4958 E TAG     : onOffEventgetOnOff: true;onOff=1 name=N8H-1AF
+07-28 08:51:55.481  4958  4958 E TAG     : onOffEventgetOnOff: true;onOff=1 name=N8H-1AF
+07-28 08:51:55.481  4958  4958 E TAG     : onOffEvent????setOnOff: 0 name=N8H-1AF
+07-28 08:51:55.484  4958  4958 E TAG     : onOffEventgetOnOff: false;onOff=0 name=N8H-1AF
+07-28 08:51:55.484  4958  4958 E TAG     : onOffEvent????setOnOff: 0 name=N8H-1AF
+07-28 08:51:55.484  4958  4958 E TAG     : sendOnOff: !!1
+07-28 08:51:55.484  4958  4958 E TAG     : sendOnOff: 1!!
+07-28 08:51:55.486  4958  4958 E writeBleData: UUID=0003cbbb-0000-1000-8000-00805f9bfff1 data=A0000001FF0001A1
+07-28 08:51:55.486  4958  4958 E TAG     : writeBleData: A0000001FF0001A1
+07-28 08:52:00.261  4958  4958 E TAG     : onOffEventgetOnOff: false;onOff=0 name=N8H-1AF
+07-28 08:52:00.262  4958  4958 E TAG     : onOffEvent????setOnOff: 1 name=N8H-1AF
+07-28 08:52:00.262  4958  4958 E TAG     : onOffEventgetOnOff: true;onOff=1 name=N8H-1AF
+07-28 08:52:00.262  4958  4958 E TAG     : onOffEvent????setOnOff: 1 name=N8H-1AF
+07-28 08:52:00.262  4958  4958 E TAG     : sendOnOff: !!1
+07-28 08:52:00.262  4958  4958 E TAG     : sendOnOff: 1!!
+07-28 08:52:00.263  4958  4958 E writeBleData: UUID=0003cbbb-0000-1000-8000-00805f9bfff1 data=A0010001FF0001A2
+07-28 08:52:00.263  4958  4958 E TAG     : writeBleData: A0010001FF0001A2
+07-28 08:52:08.940  4958  4958 E TAG     : onOffEvent????setOnOff: 1 name=N8H-1AF
+07-28 08:52:08.947  4958  4958 E TAG     : onOffEventgetOnOff: true;onOff=1 name=N8H-1AF
+07-28 08:52:09.092  4958  4958 E TAG     : sendP2dFFFA_Cmd: F100
+07-28 08:52:09.092  4958  4958 E TAG     : sendP2dFFFA_Cmd: 普通
