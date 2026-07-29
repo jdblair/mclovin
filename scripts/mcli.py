@@ -31,10 +31,26 @@ COMMAND_NAMES = {"on", "off", "brightness", "speed", "mode", "length", "raw", "s
 
 
 def make_global_parser():
+    epilog = """\
+commands:
+  on             turn lights on
+  off            turn lights off
+  brightness     set brightness (2-255)
+  speed          set animation speed (1-100)
+  mode           set animation mode with colors
+  length         query or set streamer length
+  raw            send raw hex bytes
+  scan           list nearby controllers
+
+Multiple commands can be chained on one invocation to share
+a single BLE connection (e.g. mcli on -b 128 mode chasing ff0000).
+"""
     p = argparse.ArgumentParser(
         prog="mcli",
         description="Control Mictuning LED strips over BLE.",
         usage="mcli [OPTIONS] COMMAND [ARGS] [COMMAND [ARGS] ...]",
+        epilog=epilog,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("-a", "--address", help="BLE MAC address (skip scanning)")
     p.add_argument("-t", "--timeout", type=float, default=10,
