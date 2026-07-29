@@ -50,24 +50,27 @@ class McLovin:
     def connected(self) -> bool:
         return self._client is not None and self._client.is_connected
 
-    async def connect(self, address: str | None = None, timeout: float = 10.0):
-        """Connect to the controller.
+    @staticmethod
+    async def scan(timeout: float = 10.0, name_filter: str | None = DEVICE_NAME) -> list:
+        """Scan for BLE devices advertising the controller service.
 
-        If address is None, scans for a device named DEVICE_NAME.
-        Otherwise, connects directly to the given MAC address.
+        Returns a list of BLEDevice objects. If name_filter is set,
+        only devices whose name contains the filter string are returned.
+        Pass name_filter=None to return all devices with the matching
+        service UUID.
         """
-        if address is None:
-            log.info("Scanning for %s...", DEVICE_NAME)
-            device = await BleakScanner.find_device_by_name(
-                DEVICE_NAME, timeout=timeout
-            )
-            if device is None:
-                raise RuntimeError(
-                    f"Device '{DEVICE_NAME}' not found (scanned {timeout}s)"
-                )
-            address = device.address
-            log.info("Found %s at %s", DEVICE_NAME, address)
+        log.info("Scanning for BLE devices (timeout=%.1fs)...", timeout)
+        devices = await BleakScanner.discover(
+            timeout=timeout,
+            service_uuids=[SERVICE_UUID],
+        )
+        if name_filter is not None:
+            devices = [d for d in devices if d.name and name_filter in d.name]
+        log.info("Found %d device(s)", len(devices))
+        return devices
 
+    async def connect(self, address: str, timeout: float = 10.0):
+        """Connect to the controller at the given MAC address."""
         self._client = BleakClient(address)
         await self._client.connect(timeout=timeout)
         log.info("Connected to %s", address)
@@ -83,6 +86,10 @@ class McLovin:
 
     async def on(self, brightness: int = 255, speed: int = 1, save: bool = True):
         """Turn the lights on."""
+        if not 1 <= brightness <= 255:
+            raise ValueError(f"brightness must be 1-255, got {brightness}")
+        if not 1 <= speed <= 100:
+            raise ValueError(f"speed must be 1-100, got {speed}")
         pkt = self._build_a0(on_off=1, speed=speed, brightness=brightness,
                              save=int(save))
         await self.send_raw(pkt)
@@ -93,12 +100,22 @@ class McLovin:
         await self.send_raw(pkt)
 
     async def set_brightness(self, value: int, save: bool = False):
-        """Set brightness (2-255). Use save=False for live slider updates."""
+        """Set brightness (2-255). Use save=False for live slider updates.
+
+        Sends on_off=1, which will turn the light on if it is currently off.
+        """
+        if not 2 <= value <= 255:
+            raise ValueError(f"brightness must be 2-255, got {value}")
         pkt = self._build_a0(on_off=1, speed=1, brightness=value, save=int(save))
         await self.send_raw(pkt)
 
     async def set_speed(self, value: int, save: bool = False):
-        """Set animation speed (1-100). Use save=False for live slider updates."""
+        """Set animation speed (1-100). Use save=False for live slider updates.
+
+        Sends on_off=1, which will turn the light on if it is currently off.
+        """
+        if not 1 <= value <= 100:
+            raise ValueError(f"speed must be 1-100, got {value}")
         pkt = self._build_a0(on_off=1, speed=value, brightness=255, save=int(save))
         await self.send_raw(pkt)
 
@@ -147,7 +164,7 @@ class McLovin:
         Subscribes to notifications on FFF1, sends AD 00, and waits for
         the response.
         """
-        result: asyncio.Future[int] = asyncio.get_event_loop().create_future()
+        result: asyncio.Future[int] = asyncio.get_running_loop().create_future()
 
         def on_notify(_sender, data: bytearray):
             if len(data) >= 2 and data[0] == 0xAD:

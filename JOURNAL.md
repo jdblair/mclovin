@@ -482,3 +482,48 @@ it natively via the RCU.
 are 0–5 (mode) or 9–20 (pulse states), not 30. Could be a different encoding
 for the Dream light protocol. Need to test: capture while pressing Strobe+/-
 on the RCU, or send A0 commands with varying byte 5 values after dark.
+
+## 2026-07-29 — Library spec review: open questions
+
+Wrote `docs/mclovin-spec.md` as source-of-truth for the McLovin class API.
+Review flagged issues that fall into two buckets: protocol unknowns that need
+hardware testing or more APK digging, and spec doc fixes that can be done
+anytime.
+
+### Protocol questions (need RE work)
+
+- **Brightness range mismatch**: `on()` allows 1-255 but `set_brightness()`
+  requires 2-255. The capture (speed.log) shows the app slider bottoms out
+  at 2. Is brightness=1 valid at the wire level? Does it do anything visible,
+  or is it effectively off? Test on hardware.
+
+- **`speed` vs `mode_speed` in A1**: A1 byte 4-5 is "speed" (16-bit, range
+  1-100), byte 7 is "mode_speed" (8-bit). Static mode uses speed=1,
+  mode_speed=0x64; animated modes use speed=N, mode_speed=0x00. The current
+  library maps the user-facing `speed` param to A1 bytes 4-5 only. Is byte 7
+  a separate control, or is the OEM app just encoding the same value in a
+  different slot depending on mode? Check `ControlUtil.sendDreamModel()` more
+  carefully.
+
+- **`direction` value 0x02**: capture shows 0x00=fwd, 0x01=bwd, 0x02 in
+  static mode. Is 0x02 "both"/"none"/something else? Only seen with mode
+  0x0D. Check if other modes accept it.
+
+- **`set_streamer_length` valid range**: capture shows 70-120, but what are
+  the real bounds? The slider in the app presumably has min/max — find in
+  `ShipAndCarLightActivity` or test on hardware.
+
+- **A1 `speed` field**: the high-level `set_mode()` takes a `speed` param
+  mapped to A1 bytes 4-5 (same as A0). But the A0 speed is the animation
+  speed slider, and A1 speed might be something else (transition time between
+  mode switches?). The captures always show `00 01` in A1 bytes 4-5. Need
+  to test: does changing A1 speed actually do anything?
+
+### Spec doc fixes (no RE needed, just editing)
+
+- `scan()` return type annotation: `-> list` should be `-> list[BLEDevice]`
+- `set_mode()` parameter table needs a Range column
+- `set_streamer_length()` needs a parameter table
+- A2/A3 byte-layout tables missing (A0/A1 have them)
+- CLI synopsis: `COLOR [COLOR ...]` should be `[COLOR ...]` (optional)
+- Note Python 3.10+ requirement (uses `str | None` syntax)

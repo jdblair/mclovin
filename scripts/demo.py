@@ -2,8 +2,8 @@
 """Demo script exercising the McLovin BLE control library.
 
 Usage:
-    python demo.py                  # scan for N8H-1AF by name
-    python demo.py AA:BB:CC:DD:EE:FF  # connect by MAC address
+    python demo.py                     # scan for N8H-1AF, connect to first match
+    python demo.py AA:BB:CC:DD:EE:FF   # connect by MAC address
 """
 
 import asyncio
@@ -16,7 +16,16 @@ from mclovin import McLovin, MODE_CHASING, MODE_STATIC
 async def main():
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    address = sys.argv[1] if len(sys.argv) > 1 else None
+    if len(sys.argv) > 1:
+        address = sys.argv[1]
+    else:
+        devices = await McLovin.scan()
+        if not devices:
+            print("No controllers found.")
+            sys.exit(1)
+        for d in devices:
+            print(f"  {d.address}  {d.name}")
+        address = devices[0].address
 
     m = McLovin()
     await m.connect(address)

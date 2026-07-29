@@ -45,9 +45,16 @@ Send raw bytes (caller computes checksum).
 
 ## `--no-save` flag
 
-When present, sends `save=0` in the A0 packet. The controller applies the
-change without writing to flash, so it won't persist across power cycles.
-Default behavior (without the flag) is `save=1`, which persists.
+Controls the save byte (byte 6) in the A0 packet. Without this flag, `save=1`
+is sent and the controller writes the current state to flash — the setting
+persists across power cycles. With `--no-save`, `save=0` is sent and the
+controller applies the change in RAM only; it reverts to the last saved state
+on the next power cycle.
+
+Use `--no-save` for transient adjustments (e.g. live slider-style updates)
+to avoid unnecessary flash writes. Only the `on`, `off`, `brightness`, and
+`speed` commands support this flag — `mode` sends an A1 packet, which has no
+save field.
 
 ## Mode names
 
