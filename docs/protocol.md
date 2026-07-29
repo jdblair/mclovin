@@ -112,18 +112,18 @@ A2 (and A3 if needed).
 
 	A1 [mode] [direction] [on_off] [speed_hi] [speed_lo] [brightness] [mode_speed] [color_count] [bg_r] [bg_g] [bg_b] [checksum]
 
-| Offset | Field | Size | Range | Notes |
-|--------|-------|------|-------|-------|
-| 0 | Command | 1 | `0xA1` | |
-| 1 | Mode | 1 | see mode table | |
-| 2 | Direction | 1 | `0x00`=forward, `0x01`=backward, `0x02`=`[?]` | `0x02` seen in single-color static mode |
-| 3 | On/Off | 1 | `0x00`/`0x01` | |
-| 4-5 | Speed | 2 | 1-100, 16-bit BE | Same speed as A0 bytes 2-3 |
-| 6 | Brightness | 1 | 2-255 | |
-| 7 | Mode speed | 1 | `[?]` | `0x64` (100) in static mode, `0x00` in effects. Separate from A0 speed? `[?]` |
-| 8 | Color count | 1 | 1-18 | Number of active colors in A2 (+A3) |
-| 9-11 | Background RGB | 3 | | Always `000000` in captures `[?]` |
-| 12 | Checksum | 1 | | |
+| Offset | Field          | Size | Range                                         | Notes                                                                         |
+|--------|----------------|------|-----------------------------------------------|-------------------------------------------------------------------------------|
+| 0      | Command        | 1    | `0xA1`                                        |                                                                               |
+| 1      | Mode           | 1    | see mode table                                |                                                                               |
+| 2      | Direction      | 1    | `0x00`=forward, `0x01`=backward, `0x02`=`[?]` | `0x02` seen in single-color static mode                                       |
+| 3      | On/Off         | 1    | `0x00`/`0x01`                                 |                                                                               |
+| 4-5    | Speed          | 2    | 1-100, 16-bit BE                              | Same speed as A0 bytes 2-3                                                    |
+| 6      | Brightness     | 1    | 2-255                                         |                                                                               |
+| 7      | Mode speed     | 1    | `[?]`                                         | `0x64` (100) in static mode, `0x00` in effects. Separate from A0 speed? `[?]` |
+| 8      | Color count    | 1    | 1-18                                          | Number of active colors in A2 (+A3)                                           |
+| 9-11   | Background RGB | 3    |                                               | Always `000000` in captures `[?]`                                             |
+| 12     | Checksum       | 1    |                                               |                                                                               |
 
 **Total: 13 bytes**
 

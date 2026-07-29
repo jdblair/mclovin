@@ -41,7 +41,7 @@ MODE_NAMES = {
 
 
 class McLovin:
-    """Control a Mictuning N8H-1AF LED controller over BLE."""
+    """Control a Mictuning LED controller over BLE."""
 
     def __init__(self):
         self._client: BleakClient | None = None
