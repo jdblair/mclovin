@@ -620,3 +620,75 @@ Off: `A0 00 0001 BD 1E 01 7D`
 
 - Resolved direction 0x02 → cycle
 - Closed the direction open question
+
+## 2026-07-30 — Mode sweep capture + unified mode table
+
+Two more capture sessions. First: tapped all 8 mode buttons in the manual
+mode UI (rebound, flow water, chasing, stacking, draw curtain, float,
+shuttle, flash) with 4 colors. Second: scrolled through the first few of
+the 76 "constant mode" presets (all Flow Water variants).
+
+### Mode sweep results
+
+All modes confirmed working on N8H-1AF with same A2 colors:
+
+| Button | Mode byte |
+|--------|-----------|
+| rebound | 0x10 |
+| flow water | 0x05 |
+| chasing | 0x07 |
+| stacking | 0x01 |
+| draw curtain | 0x06 |
+| float | 0x08 |
+| shuttle | 0x0F |
+| flash | **0x0A** (new) |
+
+Mode 0x0A (Flash) was not in either mode table — now added.
+
+### Preset capture observations
+
+- Presets are parameter combos as expected: same mode 0x05, varying
+  direction and color sets. First 3 presets match model.json order.
+- mode_speed=0x00 for all presets (vs 0x64 from the manual UI).
+- A1 on_off byte = 0x00 in backward preset — lights stayed on, so
+  the controller may ignore this byte in A1 context.
+- App sends A2+A1 bursts 2-3x redundantly for some preset changes.
+
+### Merged mode table
+
+The "Dream Light" vs "Ship & Car" mode table split in the protocol doc
+was misleading — the N8H-1AF accepts modes from both lists. Merged into
+a single table. The distinction in the source may refer to color protocols
+(A2/A3 vs B2/C2), not mode sets.
+
+## 2026-07-30 — F800/F100 source analysis: P2C status queries
+
+Investigated the F800 and F100 commands sent to FFFA on connection init,
+hoping to find a way to read controller state. Result: these are for a
+different product family (P2C/P2D devices), not Dream Light.
+
+### What the source shows
+
+`sendP2dFFFA_Cmd()` in ControlUtil.java sends commands to the FFFA
+characteristic. On connection init:
+
+1. Open notification on FFFA
+2. Send F800 (status query) — responses starting with F8/F9 saved as
+   P2C status data via SaveUtils
+3. Send F100 (color data query) — F1 response byte 3 is parsed as
+   on/off state
+
+P2C12AControlActivity has a polling loop that sends F100/F200/F300/F400/
+F800 until all state is populated. This is full state readback — but only
+for P2C products.
+
+### Implications for N8H-1AF
+
+The N8H-1AF (Dream Light) uses FFF1 for everything. The capture logs show
+no response to F-commands on FFFA — only AD responses on FFF1. There is
+no known way to read back mode, color, or brightness state from the
+N8H-1AF. The only query command is AD 00 (streamer length).
+
+The app works around this by storing all state locally on the phone and
+pushing it to the controller. If you control the light from a different
+phone or tool, the app has no way to sync.

@@ -248,50 +248,37 @@ Sent after AD and before mode changes. Purpose unknown. `[?]`
 
 ## Mode Table
 
-### Dream Light modes (N8H-1AF)
+Source: decompiled APK (`resources/assets/model.json` and source code). The APK
+has separate "Dream Light" and "Ship & Car" mode lists with different names for
+the same hex values, but captures on the N8H-1AF confirm it accepts modes from
+both lists — they appear to be a single shared mode set on the controller.
 
-Source: `resources/assets/model.json` in the APK. The 76 UI presets are
-combinations of 7 animation algorithms + direction + color presets.
-
-| Hex | Animation | UI Presets | Capture |
-|-----|-----------|------------|---------|
-| `0x00` | Custom sequence | custom editor | confirmed |
-| `0x01` | Running Cycle | 6 (modes 51–56) | not yet |
-| `0x04` | Tailing | 20 (modes 31–50) | not yet |
-| `0x05` | Watering (Flow water) | 10 (modes 1–10) | confirmed |
-| `0x06` | Opening & Closing | 7 (modes 57–63) | not yet |
-| `0x07` | Chasing | 10 (modes 21–30) | confirmed |
-| `0x08` | Waving (Float) | 10 (modes 11–20) | confirmed |
-| `0x0C` | Running (Rainbow) | 13 (modes 64–76) | not yet |
-| `0x0D` | Static (custom color) | custom mode | confirmed |
+| Hex | Animation | App names | Capture |
+|-----|-----------|-----------|---------|
+| `0x00` | Custom sequence | (custom editor) | confirmed |
+| `0x01` | Stacking / Running Cycle | 6 presets (51–56) | confirmed |
+| `0x04` | Tailing | 20 presets (31–50) | not yet |
+| `0x05` | Flow water / Watering | 10 presets (1–10) | confirmed |
+| `0x06` | Draw Curtain / Opening & Closing | 7 presets (57–63) | confirmed |
+| `0x07` | Chasing | 10 presets (21–30) | confirmed |
+| `0x08` | Float / Waving | 10 presets (11–20) | confirmed |
+| `0x0A` | Flash | — | confirmed |
+| `0x0C` | Running Rainbow | 13 presets (64–76) | not yet |
+| `0x0D` | Static (color wheel) | (custom mode) | confirmed |
+| `0x0F` | Shuttle | — | confirmed |
+| `0x10` | Rebound | — | confirmed |
+| `0x11` | Fixed | — | not yet |
 
 Mode `0x00` is the custom sequence mode — used when building a multi-color
 sequence in the app's custom editor. Mode `0x0D` is the custom/manual mode
 that activates when setting a single color from the color wheel.
 
-Each UI preset specifies: mode hex, direction, colors, and speed. The
-controller only implements 7+1 animation algorithms; the "76 patterns" are
-just preset parameter combos.
+The 76 UI presets are combinations of animation mode + direction + color
+presets — the controller implements ~13 animation algorithms, not 76.
 
-### Ship & Car modes (other products, not N8H-1AF)
-
-These apply to `lightType=1` products (rock lights, etc.) and use the B2/C2
-color protocol instead of A2/A3.
-
-| Hex | Name |
-|-----|------|
-| `0x01` | Stacking |
-| `0x05` | Flow water |
-| `0x06` | Draw Curtain |
-| `0x07` | Chasing |
-| `0x08` | Float |
-| `0x0F` | Shuttle |
-| `0x10` | Rebound |
-| `0x11` | Fixed |
-
-> Note: Some hex values overlap between Dream and Ship & Car (0x01, 0x05–0x08)
-> but the animation names differ slightly. The underlying algorithms may or may
-> not be the same. `[?]`
+> The "Dream Light" vs "Ship & Car" distinction in the source may refer to
+> different color protocols (A2/A3 vs B2/C2) rather than different mode sets.
+> The mode bytes themselves appear to be shared. `[?]`
 
 ## Command Sequencing
 
