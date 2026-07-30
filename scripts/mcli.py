@@ -8,6 +8,9 @@ See docs/mcli-spec.md for full specification.
 import argparse
 import asyncio
 import logging
+import os
+import readline
+import shlex
 import sys
 
 from mclovin import McLovin
@@ -41,6 +44,7 @@ commands:
   length         query or set streamer length
   raw            send raw hex bytes
   scan           list nearby controllers
+  repl           interactive REPL (connect once, run many commands)
 
 Multiple commands can be chained on one invocation to share
 a single BLE connection (e.g. mcli on -b 128 mode chasing ff0000).
@@ -243,8 +247,7 @@ async def cmd_raw(m: McLovin, args: argparse.Namespace):
     try:
         data = bytes.fromhex(args.hexbytes)
     except ValueError:
-        print(f"error: bad hex string '{args.hexbytes}'", file=sys.stderr)
-        sys.exit(1)
+        raise ValueError(f"bad hex string '{args.hexbytes}'")
     await m.send_raw(data)
 
 
@@ -258,16 +261,214 @@ COMMAND_RUNNERS = {
     "raw": cmd_raw,
 }
 
+# --- REPL ---
+
+HISTORY_FILE = os.path.expanduser("~/.mcli_history")
+
+ALL_COMMANDS = sorted(list(COMMAND_NAMES) + [
+    "connect", "disconnect", "status", "help", "quit", "exit",
+])
+MODE_NAMES_LIST = sorted(MODE_LOOKUP.keys())
+DIRECTIONS = ["backward", "forward"]
+
+
+def completer(text, state):
+    line = readline.get_line_buffer()
+    tokens = line[:readline.get_endidx()].split()
+
+    if not tokens or (len(tokens) == 1 and text):
+        matches = [c for c in ALL_COMMANDS if c.startswith(text)]
+    elif tokens[0] == "mode" and len(tokens) <= 2:
+        matches = [m for m in MODE_NAMES_LIST if m.startswith(text)]
+    elif len(tokens) >= 2 and tokens[-2] in ("-d", "--direction"):
+        matches = [d for d in DIRECTIONS if d.startswith(text)]
+    else:
+        matches = []
+
+    if state < len(matches):
+        return matches[state]
+    return None
+
+
+def setup_readline():
+    try:
+        readline.read_history_file(HISTORY_FILE)
+    except FileNotFoundError:
+        pass
+    readline.set_history_length(1000)
+    readline.set_completer(completer)
+    readline.parse_and_bind("tab: complete")
+
+
+async def async_repl(globals_):
+    """Run the interactive REPL."""
+    m = McLovin()
+    addr = None
+
+    setup_readline()
+
+    # Auto-connect if address was given on the command line
+    if globals_.address:
+        try:
+            await m.connect(globals_.address, timeout=globals_.timeout)
+            addr = globals_.address
+            print(f"Connected to {addr}")
+        except Exception as e:
+            print(f"error: {e}", file=sys.stderr)
+
+    try:
+        while True:
+            if addr:
+                prompt = f"mcli [{addr[-5:]}]> "
+            else:
+                prompt = "mcli> "
+
+            try:
+                line = input(prompt)
+            except EOFError:
+                print()
+                break
+            except KeyboardInterrupt:
+                print()
+                continue
+
+            line = line.strip()
+            if not line:
+                continue
+
+            try:
+                tokens = shlex.split(line)
+            except ValueError as e:
+                print(f"error: {e}", file=sys.stderr)
+                continue
+
+            verb = tokens[0]
+
+            # REPL-only commands
+            if verb == "quit" or verb == "exit":
+                break
+
+            elif verb == "status":
+                if addr:
+                    print(f"Connected to {addr}")
+                else:
+                    print("Disconnected")
+                continue
+
+            elif verb == "help":
+                print("Device commands:")
+                print("  on [-b BRIGHTNESS] [-s SPEED] [--save]")
+                print("  off [--save]")
+                print("  brightness VALUE [--save]")
+                print("  speed VALUE [--save]")
+                print("  mode NAME [-s SPEED] [-b BRIGHT] [-d DIR] [--bg HEX] [COLORS...]")
+                print("  length [VALUE]")
+                print("  raw HEXBYTES")
+                print("  scan")
+                print()
+                print("REPL commands:")
+                print("  connect [ADDRESS]    connect to controller")
+                print("  disconnect           disconnect from controller")
+                print("  status               show connection status")
+                print("  help                 show this help")
+                print("  quit / exit          exit REPL")
+                continue
+
+            elif verb == "connect":
+                if m.connected:
+                    print(f"error: already connected to {addr}", file=sys.stderr)
+                    continue
+                if len(tokens) > 1:
+                    target = tokens[1]
+                else:
+                    try:
+                        devices = await McLovin.scan(timeout=globals_.timeout)
+                        if not devices:
+                            print("No controllers found.", file=sys.stderr)
+                            continue
+                        target = devices[0].address
+                    except Exception as e:
+                        print(f"error: {e}", file=sys.stderr)
+                        continue
+                try:
+                    await m.connect(target, timeout=globals_.timeout)
+                    addr = target
+                    print(f"Connected to {addr}")
+                except Exception as e:
+                    print(f"error: {e}", file=sys.stderr)
+                continue
+
+            elif verb == "disconnect":
+                if not m.connected:
+                    print("error: not connected", file=sys.stderr)
+                    continue
+                try:
+                    await m.disconnect()
+                except Exception as e:
+                    print(f"error: {e}", file=sys.stderr)
+                addr = None
+                continue
+
+            # Device commands — route through existing machinery
+            try:
+                _, commands = split_argv(tokens)
+
+                if not commands:
+                    print(f"error: unknown command '{verb}'", file=sys.stderr)
+                    continue
+
+                # scan works without connection
+                if any(name == "scan" for name, _ in commands):
+                    devices = await McLovin.scan(timeout=globals_.timeout)
+                    if not devices:
+                        print("No controllers found.")
+                    else:
+                        for d in devices:
+                            print(f"  {d.address}  {d.name}")
+                    continue
+
+                if not m.connected:
+                    print("error: not connected (use 'connect' first)",
+                          file=sys.stderr)
+                    continue
+
+                parsed_commands = []
+                for cmd_name, cmd_argv in commands:
+                    parser = COMMAND_PARSERS[cmd_name]()
+                    cmd_args = parser.parse_args(cmd_argv)
+                    parsed_commands.append((cmd_name, cmd_args))
+
+                for cmd_name, cmd_args in parsed_commands:
+                    await COMMAND_RUNNERS[cmd_name](m, cmd_args)
+
+            except SystemExit:
+                # argparse calls sys.exit on parse errors — swallow it
+                pass
+            except Exception as e:
+                print(f"error: {e}", file=sys.stderr)
+
+    finally:
+        readline.write_history_file(HISTORY_FILE)
+        if m.connected:
+            await m.disconnect()
+
+
 # --- Main ---
 
 
 async def async_main():
     argv = sys.argv[1:]
+
+    # Detect REPL mode before splitting commands
+    repl_mode = "repl" in argv
+    if repl_mode:
+        argv = [a for a in argv if a != "repl"]
+
     global_argv, commands = split_argv(argv)
 
     global_parser = make_global_parser()
 
-    if not commands:
+    if not commands and not repl_mode:
         global_parser.print_help()
         sys.exit(0)
 
@@ -276,6 +477,10 @@ async def async_main():
     # Configure logging
     level = logging.DEBUG if globals_.verbose else logging.WARNING
     logging.basicConfig(level=level, format="%(levelname)s: %(message)s")
+
+    if repl_mode:
+        await async_repl(globals_)
+        return
 
     # Parse each command's arguments
     parsed_commands = []

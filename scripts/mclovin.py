@@ -104,8 +104,8 @@ class McLovin:
 
         Sends on_off=1, which will turn the light on if it is currently off.
         """
-        if not 2 <= value <= 255:
-            raise ValueError(f"brightness must be 2-255, got {value}")
+        if not 1 <= value <= 255:
+            raise ValueError(f"brightness must be 1-255, got {value}")
         pkt = self._build_a0(on_off=1, speed=1, brightness=value, save=int(save))
         await self.send_raw(pkt)
 
@@ -120,17 +120,20 @@ class McLovin:
         await self.send_raw(pkt)
 
     async def set_colors(self, colors: list[tuple[int, int, int]]):
-        """Set colors (1-12 RGB tuples) via A2 and optionally A3.
+        """Set colors (1-14 RGB tuples) via A2, optionally A3 and A4.
 
         Does NOT send A1 — call set_mode() after this to activate.
         """
-        if not 1 <= len(colors) <= 12:
-            raise ValueError(f"Expected 1-12 colors, got {len(colors)}")
+        if not 1 <= len(colors) <= 14:
+            raise ValueError(f"Expected 1-14 colors, got {len(colors)}")
         pkt_a2 = self._build_a2(colors[:6])
         await self.send_raw(pkt_a2)
         if len(colors) > 6:
             pkt_a3 = self._build_a3(colors[6:12])
             await self.send_raw(pkt_a3)
+        if len(colors) > 12:
+            pkt_a4 = self._build_a4(colors[12:14])
+            await self.send_raw(pkt_a4)
 
     async def set_mode(self, mode: int, direction: int = 0, speed: int = 1,
                        color_count: int = 1, brightness: int = 255,
@@ -255,6 +258,20 @@ class McLovin:
         """
         body = bytearray([0xA3])
         for i in range(6):
+            if i < len(colors):
+                r, g, b = colors[i]
+                body.extend([r & 0xFF, g & 0xFF, b & 0xFF])
+            else:
+                body.extend([0x00, 0x00, 0x00])
+        return bytes(body) + bytes([self._checksum(body)])
+
+    def _build_a4(self, colors: list[tuple[int, int, int]]) -> bytes:
+        """Build an A4 (color slots 12-13) packet.
+
+        Fixed 8 bytes, not zero-padded to 20 like A2/A3.
+        """
+        body = bytearray([0xA4])
+        for i in range(2):
             if i < len(colors):
                 r, g, b = colors[i]
                 body.extend([r & 0xFF, g & 0xFF, b & 0xFF])
