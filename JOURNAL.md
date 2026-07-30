@@ -527,3 +527,96 @@ anytime.
 - A2/A3 byte-layout tables missing (A0/A1 have them)
 - CLI synopsis: `COLOR [COLOR ...]` should be `[COLOR ...]` (optional)
 - Note Python 3.10+ requirement (uses `str | None` syntax)
+
+## 2026-07-30 — Custom sequence capture: A4 confirmed, mode 0x00
+
+Captured the app's custom color sequence editor in action (`capture.log`).
+Used the app to create a 14-slot sequence of alternating white/black, then
+tapped the "check" button to save.
+
+### What the capture shows
+
+The save event sends a burst of 4 packets:
+
+```
+A2 FFFFFF 000000 FFFFFF 000000 FFFFFF 000000 99   slots 0-5
+A3 FFFFFF 000000 FFFFFF 000000 FFFFFF 000000 9A   slots 6-11
+A4 FFFFFF 000000 A1                                slots 12-13
+A1 00 02 01 0001 FF 00 0E 000000 B2               mode=0x00, count=14
+```
+
+### Key findings
+
+- **A4 packet confirmed**: 8 bytes total (cmd + 2 colors + checksum). NOT
+  zero-padded to 20 bytes like A2/A3. Carries only 2 color slots (12-13).
+  Total capacity: 6+6+2 = 14 colors max. The source code has room for 6
+  slots in A4 (12-17) but the app never fills beyond 2.
+
+- **Mode 0x00 is the custom sequence mode**: distinct from 0x0D (static/
+  color wheel). Used with color_count=14 (0x0E). Direction=0x02 in this
+  capture (same as static).
+
+- **Live preview behavior**: each time a color slot is tapped in the editor,
+  the app immediately sends A2 (single color in slot 0) + A1 (static mode,
+  count=1) to preview it. The full A2+A3+A4+A1 burst is only sent on "check."
+
+- **Strobe byte 0x1E**: seen again in an A0 at 07:58:29 during what looks
+  like a state restore. Still not clear what triggers it.
+
+- **Mode 0x10**: appeared briefly (lines 15, 26), not in the Dream Light
+  mode table. Could be from the Ship & Car mode set (0x10 = "Rebound"),
+  possibly sent as part of a cross-mode transition in the app.
+
+### Protocol doc updates
+
+- Added A4 command section with byte layout
+- Added mode 0x00 (custom sequence) to mode table
+- Updated color_count range from 1-18 to 1-14
+- Updated command sequencing to include A4
+- Closed the A4 open question
+
+## 2026-07-30 — Direction capture: 0x02 = cycle confirmed
+
+Second capture session (`capture.log`, overwritten). Selected a 4-color
+pattern (red, green, blue, violet) in mode 0x10 and cycled through the
+direction options: forward, backward, cycle, forward, then off.
+
+### Decoded sequence
+
+Colors (same A2 in all bursts):
+```
+A2 FD0101 01FF01 0101FE 9601FF 000000 000000 38
+```
+Near-pure R/G/B/violet — app picker uses FD/01 instead of FF/00.
+
+A1 direction changes (mode=0x10, mode_speed=0x64, count=4):
+```
+A1 10 02 ... DA   initial (cycle)
+A1 10 00 ... D8   forward
+A1 10 01 ... D9   backward
+A1 10 02 ... DA   cycle
+A1 10 00 ... D8   forward
+```
+
+Off: `A0 00 0001 BD 1E 01 7D`
+
+### Key findings
+
+- **Direction 0x02 = cycle (both directions)**: resolves the open question.
+  Not specific to static mode — confirmed with mode 0x10.
+
+- **Mode 0x10 works on N8H-1AF**: despite being listed as "Rebound" in the
+  Ship & Car mode table, the N8H-1AF (Dream Light product) accepts it.
+  Mode sets are not product-exclusive.
+
+- **Strobe 0x1E is persistent**: present in both the on and off A0 packets,
+  so it was saved to flash in a prior session and restored by the app.
+
+- **Connection init sequence**: P2D queries to FFFA (F800, F100), then AE00,
+  then AD query (response: length=70). This happens every time the app
+  enters the mode control screen.
+
+### Protocol doc updates
+
+- Resolved direction 0x02 → cycle
+- Closed the direction open question

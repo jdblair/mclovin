@@ -116,12 +116,12 @@ A2 (and A3 if needed).
 |--------|----------------|------|-----------------------------------------------|-------------------------------------------------------------------------------|
 | 0      | Command        | 1    | `0xA1`                                        |                                                                               |
 | 1      | Mode           | 1    | see mode table                                |                                                                               |
-| 2      | Direction      | 1    | `0x00`=forward, `0x01`=backward, `0x02`=`[?]` | `0x02` seen in single-color static mode                                       |
+| 2      | Direction      | 1    | `0x00`=forward, `0x01`=backward, `0x02`=cycle  | `0x02` = alternating/both directions                                          |
 | 3      | On/Off         | 1    | `0x00`/`0x01`                                 |                                                                               |
 | 4-5    | Speed          | 2    | 1-100, 16-bit BE                              | Same speed as A0 bytes 2-3                                                    |
 | 6      | Brightness     | 1    | 2-255                                         |                                                                               |
 | 7      | Mode speed     | 1    | `[?]`                                         | `0x64` (100) in static mode, `0x00` in effects. Separate from A0 speed? `[?]` |
-| 8      | Color count    | 1    | 1-18                                          | Number of active colors in A2 (+A3)                                           |
+| 8      | Color count    | 1    | 1-14                                          | Number of active colors in A2 (+A3 +A4)                                       |
 | 9-11   | Background RGB | 3    |                                               | Always `000000` in captures `[?]`                                             |
 | 12     | Checksum       | 1    |                                               |                                                                               |
 
@@ -178,8 +178,31 @@ Example:
 a3 ffffff 000000 000000 000000 000000 000000 a0    Slot 6 = white
 ```
 
-> **Note**: The source code (`ControlUtil.sendDreamColor()`) also has an A4
-> command for colors 12-17, but it was not observed in capture. `[?]`
+### A4 — Color List (slots 12-13)
+
+Overflow for colors 13-14. Only sent when color count > 12. Unlike A2/A3,
+A4 is **not** zero-padded to 20 bytes — it carries exactly 2 color slots.
+
+	A4 [R12 G12 B12] [R13 G13 B13] [checksum]
+
+| Offset | Field | Size | Notes |
+|--------|-------|------|-------|
+| 0 | Command | 1 | `0xA4` |
+| 1-3 | Color 12 | 3 | RGB |
+| 4-6 | Color 13 | 3 | RGB |
+| 7 | Checksum | 1 | |
+
+**Total: 8 bytes (fixed)**
+
+The source code (`ControlUtil.sendDreamColor()`) has 6 slots in A4
+(colors 12-17), but the app UI caps at 14 colors, so only 2 slots
+are ever populated. Slots 14-17 are unused.
+
+Examples:
+```
+a4 ffffff 000000 a1    Slot 12 = white, slot 13 = black
+a4 ff00da 00fdff 79    Slot 12 = pink, slot 13 = cyan
+```
 
 ### AD — Streamer Length Query/Set
 
@@ -232,6 +255,7 @@ combinations of 7 animation algorithms + direction + color presets.
 
 | Hex | Animation | UI Presets | Capture |
 |-----|-----------|------------|---------|
+| `0x00` | Custom sequence | custom editor | confirmed |
 | `0x01` | Running Cycle | 6 (modes 51–56) | not yet |
 | `0x04` | Tailing | 20 (modes 31–50) | not yet |
 | `0x05` | Watering (Flow water) | 10 (modes 1–10) | confirmed |
@@ -241,8 +265,9 @@ combinations of 7 animation algorithms + direction + color presets.
 | `0x0C` | Running (Rainbow) | 13 (modes 64–76) | not yet |
 | `0x0D` | Static (custom color) | custom mode | confirmed |
 
-Mode `0x0D` is not in the preset list — it's the custom/manual mode that
-activates when setting colors directly from the color wheel.
+Mode `0x00` is the custom sequence mode — used when building a multi-color
+sequence in the app's custom editor. Mode `0x0D` is the custom/manual mode
+that activates when setting a single color from the color wheel.
 
 Each UI preset specifies: mode hex, direction, colors, and speed. The
 controller only implements 7+1 animation algorithms; the "76 patterns" are
@@ -274,7 +299,7 @@ color protocol instead of A2/A3.
 
 Sent as a burst with ~15-20ms between packets:
 
-	A2 → [A3 if >6 colors] → A1
+	A2 → [A3 if >6 colors] → [A4 if >12 colors] → A1
 
 The app often sends this sequence 2-3 times redundantly.
 
@@ -307,11 +332,11 @@ from the N8H-1AF.
 - [x] ~~Transition time~~ → **Speed**: range 1-100, confirmed by slider sweep
 - [x] ~~Speed range~~ → 1-100 confirmed
 - [x] ~~AD command~~ → streamer length query/set. N8H-1AF default = 70, range at least 70-120
-- [ ] Direction `0x02`: what does it mean? Only seen with mode `0x0D`
+- [x] ~~Direction `0x02`~~ → cycle (both directions). Confirmed by toggling forward/backward/cycle in app
 - [ ] Background color (A1 bytes 9-11): always `000000` — when is it used?
 - [ ] A0 byte 5: probably strobe rate/mode (RCU has Strobe+/- buttons). `0x1E`(30) observed — test after dark
 - [ ] AE command: exact purpose and valid parameter values
-- [ ] A4 command: exists in source for colors 12-17, never observed
+- [x] ~~A4 command~~ → colors 12-13 (8 bytes, not zero-padded). App caps at 14 colors total. Confirmed in capture
 - [x] ~~Mode `0x0D` vs `0x11`~~ → different products. `0x0D` = Dream light custom/static. `0x11` = Ship & Car Fixed
 - [ ] A1 byte 7 ("mode speed"): `0x64` in static, `0x00` in effects — relationship to A0 speed?
 - [ ] Does the controller send any responses/notifications? (app subscribes to FFF1 notify)

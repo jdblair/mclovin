@@ -3,7 +3,7 @@
 Reverse engineering the Mictuning camper light controller Bluetooth protocol
 to build a custom controller.
 
-![McLovin's sweet fake ID](assets/mclovin-id.jpg)
+![McLovin's sweet fake ID](./assets/mclovin-id.jpg)
 
 ## Background
 

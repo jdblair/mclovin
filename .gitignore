@@ -4,6 +4,7 @@ jadx/
 jadx-1.5.5.zip
 
 *~
+\#*\#
 __pycache__/
 *.pyc
 .venv/
