@@ -19,16 +19,16 @@ left-to-right, sequentially.
 
 ## Commands
 
-**`on`** `[-b BRIGHTNESS] [-s SPEED] [--no-save]`
+**`on`** `[-b BRIGHTNESS] [-s SPEED] [--save]`
 Turn lights on. Defaults: brightness=255, speed=1.
 
-**`off`** `[--no-save]`
+**`off`** `[--save]`
 Turn lights off.
 
-**`brightness`** `VALUE [--no-save]`
+**`brightness`** `VALUE [--save]`
 Set brightness (2-255).
 
-**`speed`** `VALUE [--no-save]`
+**`speed`** `VALUE [--save]`
 Set animation speed (1-100).
 
 **`mode`** `MODE [-s SPEED] [-b BRIGHTNESS] [-d DIRECTION] [--bg RRGGBB] COLOR [COLOR ...]`
@@ -43,16 +43,16 @@ it.
 **`raw`** `HEXBYTES`
 Send raw bytes (caller computes checksum).
 
-## `--no-save` flag
+## `--save` flag
 
-Controls the save byte (byte 6) in the A0 packet. Without this flag, `save=1`
-is sent and the controller writes the current state to flash — the setting
-persists across power cycles. With `--no-save`, `save=0` is sent and the
-controller applies the change in RAM only; it reverts to the last saved state
-on the next power cycle.
+Controls the save byte (byte 6) in the A0 packet. By default, `save=0` is
+sent and the controller applies the change in RAM only — it reverts to the
+last saved state on the next power cycle. With `--save`, `save=1` is sent
+and the controller writes the current state to flash, persisting across
+power cycles.
 
-Use `--no-save` for transient adjustments (e.g. live slider-style updates)
-to avoid unnecessary flash writes. Only the `on`, `off`, `brightness`, and
+The default avoids unnecessary flash writes on the controller. Use `--save`
+when you want a setting to stick. Only the `on`, `off`, `brightness`, and
 `speed` commands support this flag — `mode` sends an A1 packet, which has no
 save field.
 
@@ -93,7 +93,7 @@ mcli on
 mcli off
 mcli on -b 128 -s 50
 mcli brightness 200
-mcli brightness 50 --no-save
+mcli brightness 50 --save
 mcli speed 75
 mcli mode static ff0000
 mcli mode chasing ff0000 00ff00 0000ff

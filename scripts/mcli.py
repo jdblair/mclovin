@@ -64,27 +64,27 @@ def make_on_parser():
     p = argparse.ArgumentParser(prog="on", add_help=False)
     p.add_argument("-b", "--brightness", type=int, default=255)
     p.add_argument("-s", "--speed", type=int, default=1)
-    p.add_argument("--no-save", action="store_true")
+    p.add_argument("--save", action="store_true")
     return p
 
 
 def make_off_parser():
     p = argparse.ArgumentParser(prog="off", add_help=False)
-    p.add_argument("--no-save", action="store_true")
+    p.add_argument("--save", action="store_true")
     return p
 
 
 def make_brightness_parser():
     p = argparse.ArgumentParser(prog="brightness", add_help=False)
     p.add_argument("value", type=int)
-    p.add_argument("--no-save", action="store_true")
+    p.add_argument("--save", action="store_true")
     return p
 
 
 def make_speed_parser():
     p = argparse.ArgumentParser(prog="speed", add_help=False)
     p.add_argument("value", type=int)
-    p.add_argument("--no-save", action="store_true")
+    p.add_argument("--save", action="store_true")
     return p
 
 
@@ -195,19 +195,19 @@ def split_argv(argv: list[str]) -> tuple[list[str], list[tuple[str, list[str]]]]
 
 
 async def cmd_on(m: McLovin, args: argparse.Namespace):
-    await m.on(brightness=args.brightness, speed=args.speed, save=not args.no_save)
+    await m.on(brightness=args.brightness, speed=args.speed, save=args.save)
 
 
 async def cmd_off(m: McLovin, args: argparse.Namespace):
-    await m.off(save=not args.no_save)
+    await m.off(save=args.save)
 
 
 async def cmd_brightness(m: McLovin, args: argparse.Namespace):
-    await m.set_brightness(args.value, save=not args.no_save)
+    await m.set_brightness(args.value, save=args.save)
 
 
 async def cmd_speed(m: McLovin, args: argparse.Namespace):
-    await m.set_speed(args.value, save=not args.no_save)
+    await m.set_speed(args.value, save=args.save)
 
 
 async def cmd_mode(m: McLovin, args: argparse.Namespace):
