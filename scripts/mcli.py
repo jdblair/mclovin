@@ -65,58 +65,86 @@ a single BLE connection (e.g. mcli on -b 128 mode chasing ff0000).
 
 
 def make_on_parser():
-    p = argparse.ArgumentParser(prog="on", add_help=False)
-    p.add_argument("-b", "--brightness", type=int, default=255)
-    p.add_argument("-s", "--speed", type=int, default=1)
-    p.add_argument("--save", action="store_true")
+    p = argparse.ArgumentParser(prog="on", description="Turn lights on.")
+    p.add_argument("-b", "--brightness", type=int, default=255,
+                   help="1-255 (default: 255)")
+    p.add_argument("-s", "--speed", type=int, default=1,
+                   help="1-100 (default: 1)")
+    p.add_argument("--save", action="store_true",
+                   help="persist to flash (default: RAM only)")
     return p
 
 
 def make_off_parser():
-    p = argparse.ArgumentParser(prog="off", add_help=False)
-    p.add_argument("--save", action="store_true")
+    p = argparse.ArgumentParser(prog="off", description="Turn lights off.")
+    p.add_argument("--save", action="store_true",
+                   help="persist to flash (default: RAM only)")
     return p
 
 
 def make_brightness_parser():
-    p = argparse.ArgumentParser(prog="brightness", add_help=False)
-    p.add_argument("value", type=int)
-    p.add_argument("--save", action="store_true")
+    p = argparse.ArgumentParser(prog="brightness",
+                                description="Set brightness (1-255).")
+    p.add_argument("value", type=int, help="1-255")
+    p.add_argument("--save", action="store_true",
+                   help="persist to flash (default: RAM only)")
     return p
 
 
 def make_speed_parser():
-    p = argparse.ArgumentParser(prog="speed", add_help=False)
-    p.add_argument("value", type=int)
-    p.add_argument("--save", action="store_true")
+    p = argparse.ArgumentParser(prog="speed",
+                                description="Set animation speed (1-100).")
+    p.add_argument("value", type=int, help="1-100")
+    p.add_argument("--save", action="store_true",
+                   help="persist to flash (default: RAM only)")
     return p
 
 
+def _mode_names_epilog():
+    names = sorted(MODE_LOOKUP.keys())
+    return "mode names: " + ", ".join(names)
+
+
 def make_mode_parser():
-    p = argparse.ArgumentParser(prog="mode", add_help=False)
-    p.add_argument("mode_name")
-    p.add_argument("-s", "--speed", type=int, default=1)
-    p.add_argument("-b", "--brightness", type=int, default=255)
-    p.add_argument("-d", "--direction", default="forward")
-    p.add_argument("--bg", default="000000")
-    p.add_argument("colors", nargs="*")
+    p = argparse.ArgumentParser(
+        prog="mode",
+        description="Set animation mode with colors.",
+        epilog=_mode_names_epilog(),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument("mode_name",
+                   help="mode name or hex/decimal value (see list below)")
+    p.add_argument("-s", "--speed", type=int, default=1,
+                   help="1-100 (default: 1)")
+    p.add_argument("-b", "--brightness", type=int, default=255,
+                   help="1-255 (default: 255)")
+    p.add_argument("-d", "--direction", default="forward",
+                   help="forward or backward (default: forward)")
+    p.add_argument("--bg", default="000000",
+                   help="background color as RRGGBB hex (default: 000000)")
+    p.add_argument("colors", nargs="*",
+                   help="1-14 colors as RRGGBB hex (default: ffffff)")
     return p
 
 
 def make_length_parser():
-    p = argparse.ArgumentParser(prog="length", add_help=False)
-    p.add_argument("value", nargs="?", type=int, default=None)
+    p = argparse.ArgumentParser(prog="length",
+                                description="Query or set streamer length.")
+    p.add_argument("value", nargs="?", type=int, default=None,
+                   help="length to set (omit to query)")
     return p
 
 
 def make_raw_parser():
-    p = argparse.ArgumentParser(prog="raw", add_help=False)
-    p.add_argument("hexbytes")
+    p = argparse.ArgumentParser(prog="raw",
+                                description="Send raw hex bytes.")
+    p.add_argument("hexbytes", help="hex string (e.g. a0010001ff0001a2)")
     return p
 
 
 def make_scan_parser():
-    return argparse.ArgumentParser(prog="scan", add_help=False)
+    return argparse.ArgumentParser(prog="scan",
+                                   description="List nearby controllers.")
 
 
 COMMAND_PARSERS = {
