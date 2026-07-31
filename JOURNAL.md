@@ -692,3 +692,22 @@ N8H-1AF. The only query command is AD 00 (streamer length).
 The app works around this by storing all state locally on the phone and
 pushing it to the controller. If you control the light from a different
 phone or tool, the app has no way to sync.
+
+## 2026-07-30 — Testing notes
+
+### Length command
+
+The `length` command appears to control the length of the effect, not the
+number of LEDs. When set to a value less than the physical strip length,
+the remaining LEDs stay lit (holding their last state). Need to experiment
+more — is the remaining segment static, or does it just not participate
+in animations?
+
+### Controller crash (unreproducible)
+
+Observed once: a subset of LEDs flashed randomly white and the Bluetooth
+connection dropped. Was able to reconnect without power cycling (suggests
+firmware reboot, not hard lockup). Initial diagnosis was "mode without
+colors" but this doesn't hold up — `cmd_mode` always sends A2 (defaulting
+to white) before A1, and `set_colors()` rejects empty lists. Unable to
+reproduce. Cause unknown.

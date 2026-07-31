@@ -37,9 +37,10 @@ Set animation speed (1-100).
 
 **`mode`** `MODE [-s SPEED] [-b BRIGHTNESS] [-d DIRECTION] [--bg RRGGBB] COLOR [COLOR ...]`
 Set animation mode with colors (1-14). Sends A2 (+ A3 if >6 colors, + A4 if
->12 colors), then A1. If no colors given, defaults to white. Direction accepts `forward`/`backward` or
-`0`/`1`. For `static` mode, direction is forced to `0x02` regardless of what
-the user passes. Use `mode -h` to list all mode names.
+>12 colors), then A1. If no colors given, defaults to white. Direction
+accepts `forward`/`backward` or `0`/`1`. For `static` mode, direction is
+forced to `0x02` regardless of what the user passes. Use `mode -h` to list
+all mode names.
 
 **`length`** `[VALUE]`
 With no argument: query and print current streamer length. With argument: set
