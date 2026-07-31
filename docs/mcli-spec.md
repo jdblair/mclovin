@@ -16,17 +16,17 @@ session (see [REPL Mode](#repl-mode) below).
 | Flag              | Arg     | Default      | Description                    |
 |-------------------|---------|--------------|--------------------------------|
 | `-a`, `--address` | MAC     | scan by name | Skip scanning, connect directly |
-| `-t`, `--timeout` | seconds | 10           | BLE scan/connect timeout       |
-| `-v`, `--verbose` |         | off          | Debug logging (shows TX hex)   |
+| `-t`, `--timeout` | seconds | 5            | BLE scan/connect timeout       |
+| `-v`, `--verbose` |         | off          | `-v` show TX packets (hex + decoded), `-vv` full BLE debug |
 
 ## Commands
 
 All commands support `-h`/`--help` to show usage and accepted values.
 
-**`on`** `[-b BRIGHTNESS] [-s SPEED] [--save]`
-Turn lights on. Defaults: brightness=255, speed=1.
+**`on`** `[-b BRIGHTNESS] [-s SPEED] [--strobe STROBE] [--save]`
+Turn lights on. Defaults: brightness=255, speed=1, strobe=0.
 
-**`off`** `[--save]`
+**`off`** `[--strobe STROBE] [--save]`
 Turn lights off.
 
 **`brightness`** `VALUE [--save]`
@@ -49,8 +49,9 @@ it.
 **`raw`** `HEXBYTES`
 Send raw bytes (caller computes checksum).
 
-**`scan`**
-List nearby controllers. Does not require a connection.
+**`scan`** `[-t TIMEOUT]`
+List nearby controllers. Does not require a connection. The `-t`/`--timeout`
+argument overrides the global timeout (default: 5s).
 
 ## `--save` flag
 
@@ -65,6 +66,12 @@ when you want a setting to stick. Only the `on`, `off`, `brightness`, and
 `speed` commands support this flag — `mode` sends an A1 packet, which has no
 save field.
 
+## `--strobe` flag
+
+Controls the strobe byte (byte 5) in the A0 packet. Default is 0 (off).
+The OEM app has been observed sending values like 30 (`0x1E`). Only the
+`on` and `off` commands support this flag.
+
 ## Mode names
 
 Accepted names (case-insensitive): `running_cycle`, `tailing`, `watering`,
@@ -74,7 +81,28 @@ aliases: `cycle`, `water`, `rainbow`. Raw hex/decimal also accepted (`0x07`,
 
 ## Color format
 
-6-character hex, optional `#` prefix: `ff0000`, `#00ff00`.
+6-character hex, optional `#` prefix: `ff0000`, `#00ff00`. Named colors
+are also accepted (case-insensitive):
+
+| Name      | Hex      |
+|-----------|----------|
+| red       | `ff0000` |
+| green     | `00ff00` |
+| blue      | `0000ff` |
+| white     | `ffffff` |
+| black     | `000000` |
+| yellow    | `ffff00` |
+| cyan      | `00ffff` |
+| magenta   | `ff00ff` |
+| orange    | `ff8000` |
+| purple    | `8000ff` |
+| pink      | `ff4080` |
+| violet    | `7f00ff` |
+| teal      | `008080` |
+| indigo    | `4b0082` |
+| coral     | `ff4040` |
+| gold      | `ffd700` |
+| warmwhite | `ffd2a6` |
 
 ## Command chaining
 
@@ -94,6 +122,13 @@ then disconnects.
 Bad arguments print to stderr and exit non-zero. Connection failures raise with
 bleak's error message. If a command fails mid-chain, subsequent commands don't
 run (the connection is still cleaned up).
+
+## Device Discovery
+
+When no `--address` is given, mcli scans for controllers. If exactly one
+device is found, it connects automatically. If multiple devices are found,
+mcli prints the list and exits with an error — use `-a` to specify which
+one. If no devices are found, mcli prints an error and exits.
 
 ## Examples
 
@@ -163,13 +198,19 @@ Commands that require a connection (`on`, `off`, `brightness`, `speed`,
 | `connect [ADDRESS]`          | Scan and connect (or connect to ADDRESS)   |
 | `disconnect`                 | Disconnect from the controller             |
 | `status`                     | Print connection state and address          |
+| `loglevel LEVEL`             | Set log level (debug, info, warning, error)|
 | `help`                       | Print available commands                   |
 | `quit` / `exit`              | Disconnect and exit                        |
 
 `connect` without an address scans for a device using the same logic as
-one-shot mode (find first device matching name filter, using `--timeout`).
+one-shot mode: auto-connects if exactly one device is found, prints an
+error if multiple are found.
 
 `connect` when already connected prints an error — disconnect first.
+
+`loglevel` accepts case-insensitive level names: `debug`, `info`,
+`warning`, `error`. Sets both the root logger and the `mclovin` logger.
+With no argument, prints the current level.
 
 `status` output:
 
@@ -257,9 +298,23 @@ mcli> quit
 $ mcli -a AA:BB:CC:DD:EE:FF -v repl
 Connected to AA:BB:CC:DD:EE:FF
 mcli [DD:EE]> on
-DEBUG: TX: a0010001ff000142
+INFO: TX: a0010001ff000142
+INFO:     cmd:        0xA0 (on/off)
+INFO:     on_off:     0x01
+INFO:     speed:      0x0001 (1)
+INFO:     brightness: 0xFF (255)
+INFO:     strobe:     0x00
+INFO:     save:       0x01
+INFO:     checksum:   0x42 OK
 mcli [DD:EE]> off
-DEBUG: TX: a0000001ff000141
+INFO: TX: a0000001ff000141
+INFO:     cmd:        0xA0 (on/off)
+INFO:     on_off:     0x00
+INFO:     speed:      0x0001 (1)
+INFO:     brightness: 0xFF (255)
+INFO:     strobe:     0x00
+INFO:     save:       0x01
+INFO:     checksum:   0x41 OK
 mcli [DD:EE]>           # Ctrl-D
 Disconnected
 ```

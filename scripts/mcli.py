@@ -59,8 +59,8 @@ a single BLE connection (e.g. mcli on -b 128 mode chasing ff0000).
     p.add_argument("-a", "--address", help="BLE MAC address (skip scanning)")
     p.add_argument("-t", "--timeout", type=float, default=10,
                    help="BLE scan/connect timeout in seconds (default: 10)")
-    p.add_argument("-v", "--verbose", action="store_true",
-                   help="enable debug logging (shows TX hex)")
+    p.add_argument("-v", "--verbose", action="count", default=0,
+                   help="-v show TX packets (hex + decoded), -vv full BLE debug")
     return p
 
 
@@ -502,9 +502,14 @@ async def async_main():
 
     globals_ = global_parser.parse_args(global_argv)
 
-    # Configure logging
-    level = logging.DEBUG if globals_.verbose else logging.WARNING
-    logging.basicConfig(level=level, format="%(levelname)s: %(message)s")
+    # Configure logging: -v shows TX packets, -vv adds full BLE debug
+    if globals_.verbose >= 2:
+        logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(message)s")
+    elif globals_.verbose >= 1:
+        logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
+        logging.getLogger("mclovin").setLevel(logging.INFO)
+    else:
+        logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 
     if repl_mode:
         await async_repl(globals_)

@@ -40,6 +40,115 @@ MODE_NAMES = {
 }
 
 
+DIRECTION_NAMES = {0: "forward", 1: "backward", 2: "cycle"}
+
+COMMAND_NAMES_DECODE = {
+    0xA0: "on/off",
+    0xA1: "mode",
+    0xA2: "colors 0-5",
+    0xA3: "colors 6-11",
+    0xA4: "colors 12-13",
+    0xAD: "streamer length",
+}
+
+
+def decode_packet(data: bytes) -> list[str]:
+    """Decode a protocol packet into human-readable field descriptions."""
+    if not data:
+        return []
+    if len(data) < 2:
+        return [f"cmd: 0x{data[0]:02X} (too short)"]
+
+    cmd = data[0]
+    expected = sum(data[:-1]) & 0xFF
+    cksum_ok = data[-1] == expected
+    if cksum_ok:
+        cksum_str = f"0x{data[-1]:02X} OK"
+    else:
+        cksum_str = f"0x{data[-1]:02X} MISMATCH (expected 0x{expected:02X})"
+
+    if cmd == 0xA0 and len(data) == 8:
+        return _decode_a0(data, cksum_str)
+    elif cmd == 0xA1 and len(data) == 13:
+        return _decode_a1(data, cksum_str)
+    elif cmd in (0xA2, 0xA3) and len(data) == 20:
+        return _decode_a2_a3(data, cksum_str)
+    elif cmd == 0xA4 and len(data) == 8:
+        return _decode_a4(data, cksum_str)
+    elif cmd == 0xAD and len(data) == 3:
+        return _decode_ad(data, cksum_str)
+    else:
+        cmd_name = COMMAND_NAMES_DECODE.get(cmd, "unknown")
+        return [f"cmd: 0x{cmd:02X} ({cmd_name})", f"checksum: {cksum_str}"]
+
+
+def _decode_a0(data: bytes, cksum_str: str) -> list[str]:
+    speed = (data[2] << 8) | data[3]
+    return [
+        f"cmd:        0xA0 (on/off)",
+        f"on_off:     0x{data[1]:02X}",
+        f"speed:      0x{speed:04X} ({speed})",
+        f"brightness: 0x{data[4]:02X} ({data[4]})",
+        f"strobe:     0x{data[5]:02X}",
+        f"save:       0x{data[6]:02X}",
+        f"checksum:   {cksum_str}",
+    ]
+
+
+def _decode_a1(data: bytes, cksum_str: str) -> list[str]:
+    mode = data[1]
+    mode_name = MODE_NAMES.get(mode, "unknown")
+    direction = data[2]
+    dir_name = DIRECTION_NAMES.get(direction, "unknown")
+    speed = (data[4] << 8) | data[5]
+    bg = f"{data[9]:02x}{data[10]:02x}{data[11]:02x}"
+    return [
+        f"cmd:        0xA1 (mode)",
+        f"mode:       0x{mode:02X} ({mode_name})",
+        f"direction:  0x{direction:02X} ({dir_name})",
+        f"on_off:     0x{data[3]:02X}",
+        f"speed:      0x{speed:04X} ({speed})",
+        f"brightness: 0x{data[6]:02X} ({data[6]})",
+        f"mode_speed: 0x{data[7]:02X}",
+        f"colors:     {data[8]}",
+        f"bg_color:   {bg}",
+        f"checksum:   {cksum_str}",
+    ]
+
+
+def _decode_a2_a3(data: bytes, cksum_str: str) -> list[str]:
+    cmd = data[0]
+    cmd_name = COMMAND_NAMES_DECODE[cmd]
+    slot_base = 0 if cmd == 0xA2 else 6
+    lines = [f"cmd:        0x{cmd:02X} ({cmd_name})"]
+    for i in range(6):
+        offset = 1 + i * 3
+        color = f"{data[offset]:02x}{data[offset+1]:02x}{data[offset+2]:02x}"
+        lines.append(f"slot {slot_base + i}:     {color}")
+    lines.append(f"checksum:   {cksum_str}")
+    return lines
+
+
+def _decode_a4(data: bytes, cksum_str: str) -> list[str]:
+    lines = [f"cmd:        0xA4 (colors 12-13)"]
+    for i in range(2):
+        offset = 1 + i * 3
+        color = f"{data[offset]:02x}{data[offset+1]:02x}{data[offset+2]:02x}"
+        lines.append(f"slot {12 + i}:    {color}")
+    lines.append(f"checksum:   {cksum_str}")
+    return lines
+
+
+def _decode_ad(data: bytes, cksum_str: str) -> list[str]:
+    val = data[1]
+    label = "query" if val == 0 else str(val)
+    return [
+        f"cmd:        0xAD (streamer length)",
+        f"length:     0x{val:02X} ({label})",
+        f"checksum:   {cksum_str}",
+    ]
+
+
 class McLovin:
     """Control a Mictuning LED controller over BLE."""
 
@@ -188,7 +297,9 @@ class McLovin:
         """Write raw bytes to the FFF1 characteristic (write without response)."""
         if not self.connected:
             raise RuntimeError("Not connected")
-        log.debug("TX: %s", data.hex())
+        log.info("TX: %s", data.hex())
+        for line in decode_packet(data):
+            log.info("    %s", line)
         await self._client.write_gatt_char(CHAR_FFF1, data, response=False)
 
     @staticmethod
