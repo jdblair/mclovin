@@ -30,6 +30,15 @@ MODE_LOOKUP = {
 
 COMMAND_NAMES = {"on", "off", "brightness", "speed", "mode", "length", "raw", "scan"}
 
+COLOR_NAMES = {
+    "red": "ff0000", "green": "00ff00", "blue": "0000ff",
+    "white": "ffffff", "black": "000000", "yellow": "ffff00",
+    "cyan": "00ffff", "magenta": "ff00ff", "orange": "ff8000",
+    "purple": "8000ff", "pink": "ff4080", "violet": "7f00ff",
+    "teal": "008080", "indigo": "4b0082", "coral": "ff4040",
+    "gold": "ffd700", "warmwhite": "ffd2a6",
+}
+
 # --- Parsers ---
 
 
@@ -57,8 +66,8 @@ a single BLE connection (e.g. mcli on -b 128 mode chasing ff0000).
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("-a", "--address", help="BLE MAC address (skip scanning)")
-    p.add_argument("-t", "--timeout", type=float, default=10,
-                   help="BLE scan/connect timeout in seconds (default: 10)")
+    p.add_argument("-t", "--timeout", type=float, default=5,
+                   help="BLE scan/connect timeout in seconds (default: 5)")
     p.add_argument("-v", "--verbose", action="count", default=0,
                    help="-v show TX packets (hex + decoded), -vv full BLE debug")
     return p
@@ -70,6 +79,8 @@ def make_on_parser():
                    help="1-255 (default: 255)")
     p.add_argument("-s", "--speed", type=int, default=1,
                    help="1-100 (default: 1)")
+    p.add_argument("--strobe", type=int, default=0,
+                   help="strobe interval 0-255 (default: 0 = off)")
     p.add_argument("--save", action="store_true",
                    help="persist to flash (default: RAM only)")
     return p
@@ -77,6 +88,8 @@ def make_on_parser():
 
 def make_off_parser():
     p = argparse.ArgumentParser(prog="off", description="Turn lights off.")
+    p.add_argument("--strobe", type=int, default=0,
+                   help="strobe interval 0-255 (default: 0 = off)")
     p.add_argument("--save", action="store_true",
                    help="persist to flash (default: RAM only)")
     return p
@@ -143,8 +156,11 @@ def make_raw_parser():
 
 
 def make_scan_parser():
-    return argparse.ArgumentParser(prog="scan",
-                                   description="List nearby controllers.")
+    p = argparse.ArgumentParser(prog="scan",
+                                description="List nearby controllers.")
+    p.add_argument("-t", "--timeout", type=float, default=None,
+                   help="scan timeout in seconds (default: use global -t)")
+    return p
 
 
 COMMAND_PARSERS = {
@@ -162,8 +178,12 @@ COMMAND_PARSERS = {
 
 
 def parse_color(s: str) -> tuple[int, int, int]:
-    """Parse a hex color string like 'ff0000' or '#ff0000'."""
-    s = s.lstrip("#")
+    """Parse a color name or hex string like 'red', 'ff0000', or '#ff0000'."""
+    name = s.lower()
+    if name in COLOR_NAMES:
+        s = COLOR_NAMES[name]
+    else:
+        s = s.lstrip("#")
     if len(s) != 6:
         raise argparse.ArgumentTypeError(f"bad color '{s}': expected 6 hex digits")
     try:
@@ -227,11 +247,12 @@ def split_argv(argv: list[str]) -> tuple[list[str], list[tuple[str, list[str]]]]
 
 
 async def cmd_on(m: McLovin, args: argparse.Namespace):
-    await m.on(brightness=args.brightness, speed=args.speed, save=args.save)
+    await m.on(brightness=args.brightness, speed=args.speed,
+               strobe=args.strobe, save=args.save)
 
 
 async def cmd_off(m: McLovin, args: argparse.Namespace):
-    await m.off(save=args.save)
+    await m.off(strobe=args.strobe, save=args.save)
 
 
 async def cmd_brightness(m: McLovin, args: argparse.Namespace):
@@ -294,10 +315,12 @@ COMMAND_RUNNERS = {
 HISTORY_FILE = os.path.expanduser("~/.mcli_history")
 
 ALL_COMMANDS = sorted(list(COMMAND_NAMES) + [
-    "connect", "disconnect", "status", "help", "quit", "exit",
+    "connect", "disconnect", "status", "loglevel", "help", "quit", "exit",
 ])
 MODE_NAMES_LIST = sorted(MODE_LOOKUP.keys())
+COLOR_NAMES_LIST = sorted(COLOR_NAMES.keys())
 DIRECTIONS = ["backward", "forward"]
+LOG_LEVELS = ["debug", "info", "warning", "error"]
 
 
 def completer(text, state):
@@ -306,10 +329,23 @@ def completer(text, state):
 
     if not tokens or (len(tokens) == 1 and text):
         matches = [c for c in ALL_COMMANDS if c.startswith(text)]
-    elif tokens[0] == "mode" and len(tokens) <= 2:
+    elif tokens[0] == "mode" and len(tokens) == 2 and text:
+        # Completing the mode name (second token, still typing)
         matches = [m for m in MODE_NAMES_LIST if m.startswith(text)]
     elif len(tokens) >= 2 and tokens[-2] in ("-d", "--direction"):
         matches = [d for d in DIRECTIONS if d.startswith(text)]
+    elif tokens[0] == "mode" and len(tokens) >= 2:
+        # After mode name: complete color names for positional args and --bg
+        if tokens[-1] == "--bg" and not text:
+            matches = [c for c in COLOR_NAMES_LIST if c.startswith(text)]
+        elif len(tokens) >= 2 and tokens[-2] == "--bg":
+            matches = [c for c in COLOR_NAMES_LIST if c.startswith(text)]
+        elif not text or not text.startswith("-"):
+            matches = [c for c in COLOR_NAMES_LIST if c.startswith(text)]
+        else:
+            matches = []
+    elif tokens[0] == "loglevel" and len(tokens) <= 2:
+        matches = [l for l in LOG_LEVELS if l.startswith(text)]
     else:
         matches = []
 
@@ -385,21 +421,37 @@ async def async_repl(globals_):
 
             elif verb == "help":
                 print("Device commands:")
-                print("  on [-b BRIGHTNESS] [-s SPEED] [--save]")
-                print("  off [--save]")
+                print("  on [-b BRIGHTNESS] [-s SPEED] [--strobe N] [--save]")
+                print("  off [--strobe N] [--save]")
                 print("  brightness VALUE [--save]")
                 print("  speed VALUE [--save]")
                 print("  mode NAME [-s SPEED] [-b BRIGHT] [-d DIR] [--bg HEX] [COLORS...]")
                 print("  length [VALUE]")
                 print("  raw HEXBYTES")
-                print("  scan")
+                print("  scan [-t TIMEOUT]")
                 print()
                 print("REPL commands:")
                 print("  connect [ADDRESS]    connect to controller")
                 print("  disconnect           disconnect from controller")
                 print("  status               show connection status")
+                print("  loglevel [LEVEL]     show or set log level")
                 print("  help                 show this help")
                 print("  quit / exit          exit REPL")
+                continue
+
+            elif verb == "loglevel":
+                if len(tokens) < 2:
+                    level = logging.getLogger("mclovin").getEffectiveLevel()
+                    print(logging.getLevelName(level))
+                else:
+                    name = tokens[1].upper()
+                    try:
+                        level = getattr(logging, name)
+                        logging.getLogger().setLevel(level)
+                        logging.getLogger("mclovin").setLevel(level)
+                    except AttributeError:
+                        print(f"error: unknown level '{tokens[1]}'",
+                              file=sys.stderr)
                 continue
 
             elif verb == "connect":
@@ -413,6 +465,15 @@ async def async_repl(globals_):
                         devices = await McLovin.scan(timeout=globals_.timeout)
                         if not devices:
                             print("No controllers found.", file=sys.stderr)
+                            continue
+                        if len(devices) > 1:
+                            print("Multiple controllers found:",
+                                  file=sys.stderr)
+                            for d in devices:
+                                print(f"  {d.address}  {d.name}",
+                                      file=sys.stderr)
+                            print("Use 'connect ADDRESS' to select one.",
+                                  file=sys.stderr)
                             continue
                         target = devices[0].address
                     except Exception as e:
@@ -447,7 +508,11 @@ async def async_repl(globals_):
 
                 # scan works without connection
                 if any(name == "scan" for name, _ in commands):
-                    devices = await McLovin.scan(timeout=globals_.timeout)
+                    scan_argv = next(argv for name, argv in commands
+                                     if name == "scan")
+                    scan_args = make_scan_parser().parse_args(scan_argv)
+                    timeout = scan_args.timeout or globals_.timeout
+                    devices = await McLovin.scan(timeout=timeout)
                     if not devices:
                         print("No controllers found.")
                     else:
@@ -524,7 +589,9 @@ async def async_main():
 
     # Handle scan specially — no connection needed
     if any(name == "scan" for name, _ in parsed_commands):
-        devices = await McLovin.scan(timeout=globals_.timeout)
+        scan_args = next(args for name, args in parsed_commands if name == "scan")
+        timeout = scan_args.timeout or globals_.timeout
+        devices = await McLovin.scan(timeout=timeout)
         if not devices:
             print("No controllers found.")
         else:
@@ -539,6 +606,12 @@ async def async_main():
         devices = await McLovin.scan(timeout=globals_.timeout)
         if not devices:
             print("No controllers found.", file=sys.stderr)
+            sys.exit(1)
+        if len(devices) > 1:
+            print("Multiple controllers found:", file=sys.stderr)
+            for d in devices:
+                print(f"  {d.address}  {d.name}", file=sys.stderr)
+            print("Use -a ADDRESS to select one.", file=sys.stderr)
             sys.exit(1)
         address = devices[0].address
 

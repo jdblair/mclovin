@@ -193,19 +193,21 @@ class McLovin:
 
     # --- High-level commands ---
 
-    async def on(self, brightness: int = 255, speed: int = 1, save: bool = True):
+    async def on(self, brightness: int = 255, speed: int = 1,
+                 strobe: int = 0, save: bool = True):
         """Turn the lights on."""
         if not 1 <= brightness <= 255:
             raise ValueError(f"brightness must be 1-255, got {brightness}")
         if not 1 <= speed <= 100:
             raise ValueError(f"speed must be 1-100, got {speed}")
         pkt = self._build_a0(on_off=1, speed=speed, brightness=brightness,
-                             save=int(save))
+                             strobe=strobe, save=int(save))
         await self.send_raw(pkt)
 
-    async def off(self, save: bool = True):
+    async def off(self, strobe: int = 0, save: bool = True):
         """Turn the lights off."""
-        pkt = self._build_a0(on_off=0, speed=1, brightness=255, save=int(save))
+        pkt = self._build_a0(on_off=0, speed=1, brightness=255,
+                             strobe=strobe, save=int(save))
         await self.send_raw(pkt)
 
     async def set_brightness(self, value: int, save: bool = False):
