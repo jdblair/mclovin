@@ -2,7 +2,7 @@
 
 BLE control library and CLI for Mictuning LED controllers.
 
-![McLovin's sweet fake ID](./assets/mclovin-id.jpg)
+![McLovin's sweet fake ID](assets/mclovin-id.jpg)
 
 ## Background
 
@@ -31,6 +31,22 @@ can be provided for the effect, as well as separate brightness and
 
 What is known of the protocol is documented in
 [protocol.md](docs/protocol.md).
+
+## Protocol Reverse Engineering Process
+
+The protocol was first examined using Android's HCI snoop
+function. The resulting snoop logs can be loaded into Wireshark for
+examination.
+
+After decompiling the APK using jadx, I discovered that debugging
+messages were left in the production app. The message labeled
+writeBleData outputs the raw data sent to the controller. This means
+the protocol can be easily observed in real-time using the following
+command, at least until Mictuning updates the app and removes these
+messages.
+
+`adb logcat -c && adb logcat TAG:E writeBleData:E *:S | tee capture.log`
+
 
 ## Contributing
 
