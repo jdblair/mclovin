@@ -35,6 +35,24 @@ Dependency: [bleak](https://github.com/hbldh/bleak)
 
 `MODE_NAMES` is a dict mapping each mode constant to its display name.
 
+`DIRECTION_NAMES` is a dict mapping direction values to names:
+`{0: "forward", 1: "backward", 2: "cycle"}`.
+
+## Functions
+
+### `decode_packet(data) -> list[str]`
+
+```python
+def decode_packet(data: bytes) -> list[str]
+```
+
+Decode a protocol packet into human-readable field descriptions. Returns a
+list of strings, one per field (command, parameters, checksum with OK/MISMATCH).
+Handles A0, A1, A2, A3, A4, and AD packets. Unknown commands return a minimal
+two-line decode (command + checksum).
+
+Also used internally by `send_raw()` for TX logging.
+
 ## Class: McLovin
 
 ### Constructor
@@ -108,10 +126,11 @@ Disconnect and clear `self._client`. Safe to call when already disconnected.
 All high-level commands require an active connection (`self.connected` must be
 `True`) or `send_raw` will raise `RuntimeError`.
 
-#### `on(brightness, speed, save)` (async)
+#### `on(brightness, speed, strobe, save)` (async)
 
 ```python
-async def on(self, brightness: int = 255, speed: int = 1, save: bool = True)
+async def on(self, brightness: int = 255, speed: int = 1,
+             strobe: int = 0, save: bool = True)
 ```
 
 Turn the lights on. Sends an A0 packet with `on_off=1`.
@@ -120,21 +139,23 @@ Turn the lights on. Sends an A0 packet with `on_off=1`.
 |--------------|--------|---------|---------|-----------------------------------|
 | `brightness` | `int`  | `255`   | 1-255   | Initial brightness level          |
 | `speed`      | `int`  | `1`     | 1-100   | Animation speed                   |
+| `strobe`     | `int`  | `0`     | 0-255   | Strobe interval (0 = off)         |
 | `save`       | `bool` | `True`  |         | Persist state to controller flash |
 
 **Raises:** `ValueError` if brightness or speed out of range.
 
-#### `off(save)` (async)
+#### `off(strobe, save)` (async)
 
 ```python
-async def off(self, save: bool = True)
+async def off(self, strobe: int = 0, save: bool = True)
 ```
 
 Turn the lights off. Sends A0 with `on_off=0`, `speed=1`, `brightness=255`.
 
-| Parameter | Type   | Default | Description                       |
-|-----------|--------|---------|-----------------------------------|
-| `save`    | `bool` | `True`  | Persist state to controller flash |
+| Parameter | Type   | Default | Range   | Description                       |
+|-----------|--------|---------|---------|-----------------------------------|
+| `strobe`  | `int`  | `0`     | 0-255   | Strobe interval (0 = off)         |
+| `save`    | `bool` | `True`  |         | Persist state to controller flash |
 
 #### `set_brightness(value, save)` (async)
 
@@ -146,7 +167,7 @@ Set brightness. Sends A0 with `on_off=1` (implicit turn-on), `speed=1`.
 
 | Parameter | Type   | Default | Range | Description                               |
 |-----------|--------|---------|-------|-------------------------------------------|
-| `value`   | `int`  | —       | 2-255 | Brightness level                          |
+| `value`   | `int`  | —       | 1-255 | Brightness level                          |
 | `save`    | `bool` | `False` |       | `False` for live slider, `True` to persist |
 
 **Side effect:** Turns the light on if currently off (`on_off=1`).
@@ -177,17 +198,18 @@ Set animation speed. Sends A0 with `on_off=1` (implicit turn-on),
 async def set_colors(self, colors: list[tuple[int, int, int]])
 ```
 
-Set color palette via A2 (and A3 if >6 colors). Does **not** activate the
+Set color palette via A2 (and A3/A4 if needed). Does **not** activate the
 colors — call `set_mode()` afterward.
 
 | Parameter | Type                         | Range      | Description          |
 |-----------|------------------------------|------------|----------------------|
-| `colors`  | `list[tuple[int, int, int]]` | 1-12 items | RGB tuples (0-255)   |
+| `colors`  | `list[tuple[int, int, int]]` | 1-14 items | RGB tuples (0-255)   |
 
 **Raises:** `ValueError` if color count out of range.
 
 **Protocol detail:** Sends one A2 packet (slots 0-5). If more than 6 colors,
-also sends an A3 packet (slots 6-11). Unused slots are zero-padded.
+also sends an A3 packet (slots 6-11). If more than 12 colors, also sends an
+A4 packet (slots 12-13). Unused slots are zero-padded.
 
 #### `set_mode(mode, direction, speed, color_count, brightness, bg_color)` (async)
 
@@ -299,6 +321,11 @@ checksum). Unused slots zero-padded.
 
 Build an A3 color-slots-6-11 packet. Same structure as A2.
 
+#### `_build_a4(colors) -> bytes`
+
+Build an A4 color-slots-12-13 packet. 8 bytes (1 cmd + 6 color + 1 checksum).
+Unlike A2/A3, A4 is not zero-padded to 20 bytes.
+
 #### `_build_ad(length) -> bytes`
 
 Build an AD streamer-length packet. 3 bytes (1 cmd + 1 length + 1 checksum).
@@ -341,9 +368,9 @@ High-level methods validate inputs and raise `ValueError`:
 |------------------|-------------|-------------|
 | `on`             | brightness  | 1-255       |
 | `on`             | speed       | 1-100       |
-| `set_brightness` | value       | 2-255       |
+| `set_brightness` | value       | 1-255       |
 | `set_speed`      | value       | 1-100       |
-| `set_colors`     | len(colors) | 1-12        |
+| `set_colors`     | len(colors) | 1-14        |
 
 Low-level `_build_*` methods do **not** validate — they mask values to 8 bits
 and are the escape hatch for experimentation.

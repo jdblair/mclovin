@@ -209,7 +209,7 @@ class McLovin:
         await self.send_raw(pkt)
 
     async def set_brightness(self, value: int, save: bool = False):
-        """Set brightness (2-255). Use save=False for live slider updates.
+        """Set brightness (1-255). Use save=False for live slider updates.
 
         Sends on_off=1, which will turn the light on if it is currently off.
         """
