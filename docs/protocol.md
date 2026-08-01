@@ -1,13 +1,11 @@
-# Mictuning N8H-1AF Bluetooth Protocol Spec
-
-Status: **Draft** — validated against HCI snoop capture + decompiled APK source.
-Gaps marked with `[?]`.
+# Mictuning Dream Light BLE Protocol Spec
 
 ## Discovery
 
-The app scans for both BLE and Classic Bluetooth devices with **no service UUID
-filter**. It matches discovered devices by **advertised name** against a product
-database fetched from a server and cached locally.
+The mictuning app scans for both BLE and Classic Bluetooth devices
+with **no service UUID filter**. It matches discovered devices by
+**advertised name** against a product database fetched from a server
+and cached locally.
 
 Name matching (`ProductUtil.findProduct()`):
 - Exact match: `name == bleMatchName`
@@ -25,9 +23,12 @@ Transport is auto-detected from `BluetoothDevice.getType()`:
 To discover a controller without the app, scan for BLE devices and look for the
 service UUID below, or match by name.
 
+No effort has been made so far to decode the Ship & Car protocol, as I
+do not currently have access to a Mictuning product that uses it.
+
 ## Transport
 
-- **Bluetooth Low Energy** (not SPP, despite APK package name `headlightSpp`)
+- **Bluetooth Low Energy**
 - **Write type**: Write Without Response (ATT opcode `0x52`)
 - **No framing**: packets are written directly as characteristic values
 
@@ -52,7 +53,7 @@ There is also a secondary UUID set in the source (possibly for older hardware):
 - Service: `0000FFF0-0000-1000-8000-00805F9B34FB`
 - Characteristic: `0000FFF1-0000-1000-8000-00805F9B34FB`
 
-ATT handle `0x0018` on N8H-1AF maps to the FFF1 write characteristic.
+ATT handle `0x0018` on the test unit maps to the FFF1 write characteristic.
 
 ### SPP (Classic Bluetooth)
 
@@ -250,7 +251,7 @@ Sent after AD and before mode changes. Purpose unknown. `[?]`
 
 Source: decompiled APK (`resources/assets/model.json` and source code). The APK
 has separate "Dream Light" and "Ship & Car" mode lists with different names for
-the same hex values, but captures on the N8H-1AF confirm it accepts modes from
+the same hex values, but captures on the test unit confirm it accepts modes from
 both lists — they appear to be a single shared mode set on the controller.
 
 | Hex | Animation | App names | Capture |
@@ -304,11 +305,11 @@ Observed sequence:
 
 The AD/AE pair appears to precede mode transitions. `[?]`
 
-## Protocol Variants (from source, not applicable to N8H-1AF)
+## Protocol Variants (from source, not observed in captures)
 
 The app contains a second protocol for "Ship & Car" light products using
 commands B2 and C2 instead of A2/A3. These were **not observed** in captures
-from the N8H-1AF.
+from the test unit.
 
 - **B2**: 14 RGB color slots for zone 1 (44 bytes)
 - **C2**: 14 RGB color slots for zone 2 (44 bytes)
@@ -318,7 +319,7 @@ from the N8H-1AF.
 
 - [x] ~~Transition time~~ → **Speed**: range 1-100, confirmed by slider sweep
 - [x] ~~Speed range~~ → 1-100 confirmed
-- [x] ~~AD command~~ → streamer length query/set. N8H-1AF default = 70, range at least 70-120
+- [x] ~~AD command~~ → streamer length query/set. Test unit default = 70, range at least 70-120
 - [x] ~~Direction `0x02`~~ → cycle (both directions). Confirmed by toggling forward/backward/cycle in app
 - [ ] Background color (A1 bytes 9-11): always `000000` — when is it used?
 - [ ] A0 byte 5: probably strobe rate/mode (RCU has Strobe+/- buttons). `0x1E`(30) observed — test after dark

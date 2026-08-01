@@ -1,23 +1,25 @@
 # For Claude Code / AI assistants:
 
-- **Project**: McLovin — reverse engineering Mictuning camper light Bluetooth protocol
-- **Goal**: Understand the SPP protocol and build a custom controller
-- **Status**: APK decompiled, protocol analysis in progress
+- **Project**: McLovin — BLE control library and CLI for Mictuning LED controllers
+- **Goal**: Custom controller replacing the stock Mictuning Android app
+- **Status**: Known protocol documented, library and CLI working
 
 ## Key Info
 
 - Original APK package: `com.qunchen.headlightSpp`
-- Uses Bluetooth Classic SPP (not BLE)
-- OEM developer: Qunchen
-- Decompiled source in `mictuning-src/`
+- Uses BLE GATT (despite package name mentioning SPP)
 
-## Focus Areas
+## Source Layout
 
-- `mictuning-src/sources/com/qunchen/ble/miconline/shipAndCarLight/` — main control logic
-- `BlueDataSendUtils.java` — command byte construction (start here)
-- Look for: command framing, checksums, color encoding, mode selection
+- `src/mclovin/lib.py` — BLE control library (`McLovin` class)
+- `src/mclovin/cli.py` — CLI tool (`mcli` entry point)
+- `src/mclovin/__init__.py` — re-exports public API from lib.py
+- `scripts/demo.py` — example script
+- `docs/protocol.md` — reverse-engineered protocol spec
+- `docs/mclovin-spec.md` — library API spec
+- `docs/mcli-spec.md` — CLI spec
 
 ## Notes
 
-- jadx decompilation had 32 errors out of 7973 classes — minor, most code is readable
-- Despite package name mentioning BLE, the app uses SPP (Serial Port Profile)
+- Install with `pip install -e .` for development
+- `mcli` console script is defined in pyproject.toml

@@ -13,7 +13,7 @@ import readline
 import shlex
 import sys
 
-from mclovin import McLovin
+from mclovin.lib import McLovin
 
 # --- Constants ---
 

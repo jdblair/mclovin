@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Demo script exercising the McLovin BLE control library.
 
+Requires mclovin to be installed first (pip install -e . from repo root).
+
 Usage:
     python demo.py                     # scan for N8H-1AF, connect to first match
     python demo.py AA:BB:CC:DD:EE:FF   # connect by MAC address

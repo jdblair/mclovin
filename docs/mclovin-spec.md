@@ -1,11 +1,11 @@
 # McLovin Library Spec
 
-Source of truth for the `McLovin` class API in `scripts/mclovin.py`.
+Source of truth for the `McLovin` class API in `src/mclovin/lib.py`.
 
 ## Overview
 
 McLovin is an async Python library for controlling Mictuning LED controllers
-(e.g. N8H-1AF) over BLE GATT. It uses the Dream Light protocol (command bytes
+over BLE GATT. It uses the Dream Light protocol (command bytes
 A0/A1/A2/A3/AD) and communicates via bleak.
 
 Dependency: [bleak](https://github.com/hbldh/bleak)
@@ -19,7 +19,6 @@ Dependency: [bleak](https://github.com/hbldh/bleak)
 | `SERVICE_UUID` | `0003cbbb-0000-1000-8000-00805f9bfff0`   | GATT service UUID            |
 | `CHAR_FFF1`    | `0003cbbb-0000-1000-8000-00805f9bfff1`   | Read/write characteristic    |
 | `CHAR_FFFA`    | `0003cbbb-0000-1000-8000-00805f9bfffa`   | Secondary characteristic     |
-| `DEVICE_NAME`  | `N8H-1AF`                                | Default BLE advertised name  |
 
 ### Animation modes
 
@@ -61,7 +60,7 @@ No arguments. Creates an unconnected controller handle. Internal state:
 
 ```python
 @staticmethod
-async def scan(timeout: float = 10.0, name_filter: str | None = DEVICE_NAME) -> list
+async def scan(timeout: float = 10.0, name_filter: str | None = None) -> list
 ```
 
 Discover BLE devices advertising `SERVICE_UUID`.
@@ -69,7 +68,7 @@ Discover BLE devices advertising `SERVICE_UUID`.
 | Parameter     | Type             | Default       | Description                                      |
 |---------------|------------------|---------------|--------------------------------------------------|
 | `timeout`     | `float`          | `10.0`        | Scan duration in seconds                         |
-| `name_filter` | `str \| None`    | `DEVICE_NAME` | Substring match on device name; `None` to skip   |
+| `name_filter` | `str \| None`    | `None`        | Substring match on device name; `None` to skip   |
 
 **Returns:** list of `BLEDevice` objects (from bleak). May be empty.
 

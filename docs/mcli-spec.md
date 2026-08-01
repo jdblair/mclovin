@@ -269,7 +269,7 @@ command and returns to the prompt. It does not disconnect.
 
 ### Implementation Notes
 
-The REPL reuses the same command parsers and runners from `mcli.py`
+The REPL reuses the same command parsers and runners from `cli.py`
 (`split_argv`, `COMMAND_PARSERS`, `COMMAND_RUNNERS`). REPL-only commands
 (`connect`, `disconnect`, `status`, `help`, `quit`/`exit`) are handled
 before the line reaches the existing command-chaining logic.

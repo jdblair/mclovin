@@ -9,3 +9,9 @@ __pycache__/
 *.pyc
 .venv/
 *.log
+*.egg-info/
+
+NOTES.org
+btsnoop/
+docs/mclovin.html
+scripts/exit

@@ -711,3 +711,74 @@ firmware reboot, not hard lockup). Initial diagnosis was "mode without
 colors" but this doesn't hold up — `cmd_mode` always sends A2 (defaulting
 to white) before A1, and `set_colors()` rejects empty lists. Unable to
 reproduce. Cause unknown.
+
+## 2026-07-31 — CLI feature batch
+
+Implemented five spec changes in a single commit (`1a1af1a`):
+
+1. **`--strobe` on on/off**: Added `--strobe N` flag to both `on` and
+   `off` commands. Threads through to `_build_a0()` which already had the
+   strobe byte position. Updated `mclovin.py` `on()` and `off()` method
+   signatures.
+
+2. **Timeout default 10→5, scan `-t` override**: Global timeout now
+   defaults to 5s. `scan` subcommand gets its own `-t`/`--timeout` that
+   overrides the global when specified. Both one-shot and REPL scan paths
+   updated.
+
+3. **Named colors**: 17 predefined color names (red, green, blue, white,
+   cyan, magenta, orange, purple, pink, violet, teal, indigo, coral, gold,
+   warmwhite, etc.). `parse_color()` does case-insensitive name lookup
+   before hex parse, so both `red` and `ff0000` work. Tab completion
+   offers color names after mode name position and after `--bg`.
+
+4. **Multi-device guard**: When scanning discovers >1 controller, one-shot
+   mode prints the list and exits with error. REPL `connect` prints the
+   list and prompts `connect ADDRESS`. Single device auto-selects as
+   before.
+
+5. **REPL `loglevel` command**: `loglevel` shows current level, `loglevel
+   debug` sets both root and mclovin loggers. Tab-completes level names.
+
+## 2026-07-31 — Package for GitHub release
+
+Converted the flat `scripts/` layout into a proper installable Python
+package and cleaned up the repo for public release.
+
+### Package structure
+
+Created `src/mclovin/` layout with `pyproject.toml`:
+
+- `scripts/mclovin.py` → `src/mclovin/lib.py`
+- `scripts/mcli.py` → `src/mclovin/cli.py`
+- `src/mclovin/__init__.py` re-exports the public API from `lib.py`
+- `pyproject.toml` defines `mcli` console script entry point
+- `scripts/demo.py` stays as an example (imports from installed package)
+
+Build backend: `setuptools.build_meta` (the plan had
+`setuptools.backends._legacy:_Backend` which doesn't exist).
+
+### Files removed from tracking
+
+- `NOTES.org`, `btsnoop/`, `docs/mclovin.html` — added to `.gitignore`,
+  removed from git but kept on disk
+- `requirements.txt` — superseded by `pyproject.toml`, deleted
+- `scripts/mclovin.py`, `scripts/mcli.py` — moved to `src/mclovin/`
+- `scripts/exit` — empty junk file, deleted
+
+### Doc updates
+
+- `README.md` — rewritten for a public audience: background, hardware
+  details, contributing section, install/usage instructions
+- `CLAUDE.md` — updated paths and status
+- `docs/protocol.md` — replaced N8H-1AF references with "test unit"
+  and renamed to "Mictuning Dream Light BLE Protocol Spec"
+- `docs/mclovin-spec.md` — updated path, removed `DEVICE_NAME` constant
+  (removed from library; scan now defaults `name_filter=None`)
+- `docs/mcli-spec.md` — updated path reference
+
+### Verified
+
+- `pip install -e .` succeeds in the project `.venv`
+- `from mclovin import McLovin` works via `__init__.py`
+- `mcli --help` works via `console_scripts` entry point

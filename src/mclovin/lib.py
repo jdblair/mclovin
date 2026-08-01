@@ -1,4 +1,4 @@
-"""McLovin — BLE control library for Mictuning N8H-1AF LED controllers.
+"""McLovin — BLE control library for Mictuning LED controllers.
 
 Uses the Dream Light protocol (A0/A1/A2/A3/AD commands) over BLE GATT.
 See PROTOCOL.md for packet format details.
@@ -15,8 +15,6 @@ log = logging.getLogger(__name__)
 SERVICE_UUID = "0003cbbb-0000-1000-8000-00805f9bfff0"
 CHAR_FFF1 = "0003cbbb-0000-1000-8000-00805f9bfff1"
 CHAR_FFFA = "0003cbbb-0000-1000-8000-00805f9bfffa"
-
-DEVICE_NAME = "N8H-1AF"
 
 # Animation modes (Dream Light protocol)
 MODE_RUNNING_CYCLE = 0x01
@@ -160,7 +158,7 @@ class McLovin:
         return self._client is not None and self._client.is_connected
 
     @staticmethod
-    async def scan(timeout: float = 10.0, name_filter: str | None = DEVICE_NAME) -> list:
+    async def scan(timeout: float = 10.0, name_filter: str = None) -> list:
         """Scan for BLE devices advertising the controller service.
 
         Returns a list of BLEDevice objects. If name_filter is set,
