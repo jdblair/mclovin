@@ -1,6 +1,6 @@
 # McLovin
 
-BLE control library and CLI for Mictuning LED controllers.
+BLE control library and CLI for [Mictuning LED systems](https://www.aliexpress.com/store/1101285044).
 
 ![McLovin's sweet fake ID](assets/mclovin-id.jpg)
 
