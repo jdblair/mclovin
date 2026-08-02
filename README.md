@@ -106,10 +106,10 @@ await m.disconnect()
 
 ## Project Structure
 
-- `src/mclovin/lib.py` — BLE control library (`McLovin` class)
-- `src/mclovin/cli.py` — CLI tool (`mcli`)
-- `scripts/demo.py` — example script exercising the library
-- `docs/protocol.md` — reverse-engineered BLE protocol spec
-- `docs/mclovin-spec.md` — library API specification
-- `docs/mcli-spec.md` — CLI specification
-- `docs/chinese-glossary.md` — glossary from decompiled source
+- [`src/mclovin/lib.py`](src/mclovin/lib.py) — BLE control library (`McLovin` class)
+- [`src/mclovin/cli.py`](src/mclovin/cli.py) — CLI tool (`mcli`)
+- [`scripts/demo.py`](scripts/demo.py) — example script exercising the library
+- [`docs/protocol.md`](docs/protocol.md) — reverse-engineered BLE protocol spec
+- [`docs/mclovin-spec.md`](docs/mclovin-spec.md) — library API specification
+- [`docs/mcli-spec.md`](docs/mcli-spec.md) — CLI specification
+- [`docs/chinese-glossary.md`](docs/chinese-glossary.md) — glossary from decompiled source
