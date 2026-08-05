@@ -61,7 +61,9 @@ This is a work in progress. If you have access to a Mictuning light
 kit and you would like to contribute, please do!
 
 If you implement a new feature, please include the appropriate
-modification to the spec files.
+modification to the spec files. The two spec files together should, in
+principle, allow the library and cli to be re-implemented in another
+language or sdk.
 
 
 ## Install
