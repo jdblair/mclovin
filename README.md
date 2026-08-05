@@ -10,7 +10,10 @@ Mictuning sells LED light kits for vehicles (underlights, "rock
 lights", and others), with a bluetooth controller, remote control, and
 mobile device (iOS, Android) apps.  This project implements the
 reverse-engineered BLE protocol in a python library and provides a CLI
-for using the library.
+for using the library. I have one of these systems installed on my 
+campervan for festival lighting.
+
+![Our van Jean-Luc with mode static violet set](assets/static_violet.png)
 
 This project is (so far) based only on the Mictuning underlight kit, and
 implements a protocol called "Dream Lights" in the decompiled Android
@@ -34,7 +37,9 @@ What is known of the protocol is documented in
 
 ## Protocol Reverse Engineering Process
 
-The protocol was first examined using Android's HCI snoop
+My research process is documented in [JOURNAL.md](assets/JOURNAL.md).
+
+I first examined the bluetooth behavior using Android's HCI snoop
 function. The resulting snoop logs can be loaded into Wireshark for
 examination.
 
@@ -47,6 +52,8 @@ messages.
 
 `adb logcat -c && adb logcat TAG:E writeBleData:E *:S | tee capture.log`
 
+This was a useful lesson to always check `logcat` for an APK that I'm
+studying.
 
 ## Contributing
 
