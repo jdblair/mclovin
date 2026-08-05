@@ -37,7 +37,7 @@ What is known of the protocol is documented in
 
 ## Protocol Reverse Engineering Process
 
-My research process is documented in [JOURNAL.md](assets/JOURNAL.md).
+My research process is documented in [JOURNAL.md](JOURNAL.md).
 
 I first examined the bluetooth behavior using Android's HCI snoop
 function. The resulting snoop logs can be loaded into Wireshark for
